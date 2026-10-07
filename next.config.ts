@@ -185,6 +185,20 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      {
+        source: "/:path*",
+        headers: [{ key: "Link", value: '</llms.txt>; rel="describedby"' }],
+      },
+      {
+        source: "/llms.txt",
+        locale: false,
+        headers: [{ key: "Content-Type", value: "text/plain; charset=utf-8" }],
+      },
+      {
+        source: "/site-guide.md",
+        locale: false,
+        headers: [{ key: "Content-Type", value: "text/markdown; charset=utf-8" }],
+      },
       ...(isPreview
         ? [
             {

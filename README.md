@@ -52,7 +52,17 @@ PostgreSQL database. Use `kaiyuanshe/config.example.yaml` as a starting point.
 Do not point a development instance at production: the inherited backend runs
 database migrations and data initialization during startup.
 
-## Validation
+## AI-readable site guide
+
+`public/llms.txt` is served at `/llms.txt`. It provides community context and
+curated public links, starting with the plain Markdown `/site-guide.md`.
+Responses advertise the index using `Link: </llms.txt>; rel="describedby"`.
+It is an information index, not an access-control or content-license policy.
+When public routes, names, or canonical domains change, update both files and
+run `npm run test:llms`. No production data or private APIs are needed to
+generate these static resources.
+
+## Build validation
 
 ```sh
 npm run build

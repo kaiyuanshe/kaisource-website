@@ -1,0 +1,38 @@
+# KaiSource (开源社 / KaiYuanShe)
+
+> KaiSource is a volunteer-run, vendor-neutral, non-profit open source community founded in China in 2014. We connect people through contribution, consensus, and co-governance.
+
+KaiSource is the English name of 开源社. KaiYuanShe and KAIYUANSHE are names used for the same community, not a separate organization.
+
+The international website is https://www.kaisource.org/ (English by default). The Chinese website is https://www.kaiyuanshe.cn/. Chinese is also available at https://www.kaisource.org/zh-CN. Cite the page and language you actually read. Check dates on announcements and event pages before describing an event as upcoming.
+
+This index covers public community information only. It does not grant permission to access private accounts, bypass login, or reuse content beyond its stated license. Some linked web pages load articles and events with JavaScript. If a page does not provide readable content, do not infer its contents from its title alone.
+
+## Site guide
+
+- [KaiSource site guide](https://www.kaisource.org/site-guide.md): Plain Markdown introduction, naming, language guidance, and a map of public content.
+
+## Community and governance
+
+- [About KaiSource](https://www.kaisource.org/about): Mission, history, and community work.
+- [Organization](https://www.kaisource.org/organization): Community structure and governance.
+- [Charter](https://www.kaisource.org/charter): Community principles and rules.
+- [Code of conduct](https://www.kaisource.org/governance/code-of-conduct): Expectations for respectful participation.
+- [Open source manifesto](https://www.kaisource.org/governance/open-source-manifesto): Open source values.
+- [Annual reports](https://www.kaisource.org/annual-reports): Reports on the community's work.
+
+## Articles and events
+
+- [Articles](https://www.kaisource.org/blogs): Published community articles and translations.
+- [Announcements](https://www.kaisource.org/announcement): Public news and announcements.
+- [Events](https://www.kaisource.org/events): Community activities and event details.
+- [Event calendar](https://www.kaisource.org/events/calendar): Calendar of community activities.
+- [COSCon](https://www.kaisource.org/events/coscon): China Open Source Conference information.
+
+## Optional
+
+- [Chinese homepage](https://www.kaiyuanshe.cn/): Official Chinese entry point.
+- [Chinese about page](https://www.kaisource.org/zh-CN/about): Chinese-language introduction.
+- [Partners](https://www.kaisource.org/partners): Community partners.
+- [Brand resources](https://www.kaisource.org/brand): Names, logos, and public brand materials.
+- [Open Source Ecosystem: 60 Questions](https://60qa.kaisource.org/): A separate learning resource about the open source ecosystem.
