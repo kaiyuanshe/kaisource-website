@@ -3,6 +3,7 @@ package routes
 import (
 	"kaiyuanshe/controllers"
 	"kaiyuanshe/middlewares"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -10,10 +11,12 @@ import (
 func SetupRouter(r *gin.Engine) {
 	r.Use(middlewares.Cors())
 
-	r.POST("/v1/login-email", middlewares.LeakyBucketRateLimiter(100), controllers.HandleLoginV2)
-	r.POST("/v1/register-verify", middlewares.LeakyBucketRateLimiter(100), controllers.HandleLoginVerify)
-	r.POST("/v1/login", middlewares.LeakyBucketRateLimiter(100), controllers.HandleLogin)
-	r.POST("/v1/register", middlewares.LeakyBucketRateLimiter(100), controllers.HandleRegister)
+	r.POST("/v1/login-email", middlewares.SharedAuthRateLimiter("login-email", 20, 5*time.Minute), controllers.HandleLoginV2)
+	r.POST("/v1/register-verify", middlewares.SharedAuthRateLimiter("register-verify", 20, 5*time.Minute), controllers.HandleLoginVerify)
+	r.POST("/v1/login", middlewares.SharedAuthRateLimiter("login-oauth", 20, 5*time.Minute), controllers.HandleLogin)
+	r.POST("/v1/register", middlewares.SharedAuthRateLimiter("register", 10, 5*time.Minute), controllers.HandleRegister)
+	r.POST("/v1/captcha/generate", middlewares.SharedAuthRateLimiter("captcha-generate", 30, 5*time.Minute), controllers.GenerateCaptcha)
+	r.POST("/v1/captcha/verify", middlewares.SharedAuthRateLimiter("captcha-verify", 20, 5*time.Minute), controllers.VerifyCaptcha)
 
 	user := r.Group("v1/users")
 	{

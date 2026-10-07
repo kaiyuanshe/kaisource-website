@@ -61,8 +61,6 @@ export const loginUser = async (params: LoginParams): Promise<LoginResult> => {
       body: JSON.stringify(body)
     })
 
-    console.log(body)
-
     const data = await response.json()
 
     if (response.ok && data.code === 200) {
@@ -107,13 +105,8 @@ export const loginWithEmail = async (
 
     // 检查响应的内容类型
     const contentType = response.headers.get('content-type')
-    console.log('Email login response status:', response.status)
-    console.log('Email login response content-type:', contentType)
-    console.log('Email login response url:', response.url)
     
     if (!contentType || !contentType.includes('application/json')) {
-      const text = await response.text()
-      console.log('Email login non-JSON response:', text.substring(0, 500))
       throw new Error(`服务器返回非JSON响应: ${response.status} ${response.statusText}。请检查API服务器是否正常运行。`)
     }
 

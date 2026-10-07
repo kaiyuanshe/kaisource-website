@@ -77,8 +77,10 @@ the current locale and route, including article/event IDs and query parameters.
 ```sh
 npm run test:locales
 npm run test:media-security # Live-account media policy with isolated fixtures.
+npm run test:captcha
 npm run build
 npm run test:backend-runtime # Requires local PostgreSQL tools; creates a disposable cluster.
+npm run test:auth-runtime # Builds Next and tests actual isolated NextAuth + Go + PostgreSQL.
 cd kaiyuanshe
 go test ./...
 go build ./...

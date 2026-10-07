@@ -15,5 +15,6 @@ func MigrateSchema() error {
 		&Post{}, &PostLike{}, &PostFavorite{}, &DailyStats{}, &Follow{},
 		&Session{}, &Agenda{}, &Speaker{}, &VolunteerCategory{}, &Volunteer{},
 		&Gift{}, &Community{}, &Member{},
+		&CaptchaChallenge{}, &RegistrationProof{}, &AuthRateBucket{},
 	)
 }

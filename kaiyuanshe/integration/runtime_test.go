@@ -57,8 +57,14 @@ func TestIsolatedRuntime(t *testing.T) {
 		t.Fatal("startup migrated schema")
 	}
 	models.BindDatabase(connection)
+	if err := models.ValidateAuthenticationSchema(); err == nil {
+		t.Fatal("serving allowed before explicit authentication migration")
+	}
 	if err := models.MigrateSchema(); err != nil {
 		t.Fatal("migration failed", err)
+	}
+	if err := models.ValidateAuthenticationSchema(); err != nil {
+		t.Fatal("explicit authentication migration was not recognized")
 	}
 	if pool.Stats().MaxOpenConnections != 5 {
 		t.Fatal("pool limit missing")
@@ -207,4 +213,6 @@ func TestIsolatedRuntime(t *testing.T) {
 	if count != 29 {
 		t.Fatal("category seed is not idempotent")
 	}
+	t.Run("shared authentication state", func(t *testing.T) { testSharedAuthenticationState(t, connection) })
+	t.Run("NextAuth real login and writes", func(t *testing.T) { testNextAuthRuntime(t, connection) })
 }

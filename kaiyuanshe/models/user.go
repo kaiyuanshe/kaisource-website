@@ -1,6 +1,8 @@
 package models
 
 import (
+	"context"
+	"errors"
 	"time"
 
 	"gorm.io/gorm"
@@ -80,6 +82,9 @@ func GetUserWithPermissions(uid uint) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
+	if user.Role == nil {
+		return nil, errors.New("account role is unavailable")
+	}
 
 	permSet := map[string]struct{}{}
 
@@ -100,6 +105,13 @@ func GetUserWithPermissions(uid uint) ([]string, error) {
 		perms = append(perms, name)
 	}
 	return perms, nil
+}
+
+func ConsumeEmailVerification(ctx context.Context, id uint, token string) (bool, error) {
+	result := db.WithContext(ctx).Model(&User{}).
+		Where("id = ? AND is_verified = false AND verify_token = ? AND token_expiry > ?", id, token, time.Now()).
+		Updates(map[string]interface{}{"is_verified": true, "verify_token": "", "token_expiry": nil})
+	return result.RowsAffected == 1, result.Error
 }
 
 type Follow struct {

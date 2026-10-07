@@ -29,9 +29,9 @@ func main() {
 }
 
 func run() error {
-	mode := flag.String("mode", "serve", "serve, migrate, seed, or stats")
+	mode := flag.String("mode", "serve", "serve, migrate, migrate-auth, seed, stats, or cleanup")
 	flag.Parse()
-	if *mode != "serve" && *mode != "migrate" && *mode != "seed" && *mode != "stats" {
+	if *mode != "serve" && *mode != "migrate" && *mode != "migrate-auth" && *mode != "seed" && *mode != "stats" && *mode != "cleanup" {
 		return errors.New("invalid mode")
 	}
 	if err := config.Load(); err != nil {
@@ -52,6 +52,11 @@ func run() error {
 	}
 	defer pool.Close()
 	switch *mode {
+	case "migrate-auth":
+		if err := models.MigrateAuthenticationSchema(); err != nil {
+			return errors.New("authentication schema migration failed; inspect database diagnostics")
+		}
+		return nil
 	case "migrate":
 		if err := models.MigrateSchema(); err != nil {
 			return errors.New("schema migration failed; inspect database diagnostics")
@@ -70,6 +75,16 @@ func run() error {
 			return errors.New("daily statistics task failed")
 		}
 		return nil
+	case "cleanup":
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		if err := models.PruneAuthenticationState(ctx); err != nil {
+			return errors.New("authentication state cleanup failed")
+		}
+		return nil
+	}
+	if err := models.ValidateAuthenticationSchema(); err != nil {
+		return err
 	}
 	// 初始化日志
 	logFile := viper.GetString("log.file")
@@ -92,6 +107,9 @@ func run() error {
 	}
 
 	r := gin.Default()
+	if err := r.SetTrustedProxies(viper.GetStringSlice("server.trusted_proxies")); err != nil {
+		return errors.New("invalid trusted proxy configuration")
+	}
 	r.Use(middlewares.Cors())
 	routes.SetupRouter(r)
 	r.GET("/healthz", func(c *gin.Context) {

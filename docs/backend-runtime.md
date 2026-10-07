@@ -13,6 +13,9 @@
   for the total number of concurrent instances, not just one instance.
 - `PORT` controls the HTTP listener. `/healthz` checks database connectivity.
 - Migration, seeding, and daily statistics are separate operator commands.
+- Authentication state is durable in the shared database, with explicit schema
+  validation before serving and a separate operator cleanup command. See
+  `shared-auth-state.md` for contract changes, release order and verification.
 - JWT signing reads the configured key after initialization, rejects missing
   keys, and only accepts the existing HS256 algorithm.
 - Article routes use `article:write`, `article:delete`, and `article:review`, not
@@ -45,9 +48,11 @@ Run from `kaiyuanshe/` against an approved isolated database first:
 
 ```sh
 go run . -mode migrate
+go run . -mode migrate-auth
 go run . -mode seed
 go run . -mode serve
 go run . -mode stats
+go run . -mode cleanup
 ```
 
 `serve` never calls migration or seeding. `seed` is for a new database and is
@@ -102,3 +107,8 @@ explicit migration, no implicit seed data, a bounded pool, real password login,
 wrong-password rejection, locale-specific lists, linked article translation,
 authenticated profile and article writes, anonymous rejection, and rejection of
 article writes by an event-only role. The cluster is stopped and removed afterward.
+It now also verifies durable captcha/registration proofs, shared limits and a
+real registration/mail-activation/login flow with loopback SMTP. Run
+`npm run test:auth-runtime` to additionally exercise actual NextAuth, Secure
+cookies, CSRF, the shared user ID, and an authenticated article write. These are
+isolated tests, not verification of production accounts or external providers.

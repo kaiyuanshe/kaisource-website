@@ -9,9 +9,10 @@ import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("../", import.meta.url));
 const workspace = mkdtempSync(path.join(tmpdir(), "kaisource-pg-test-"));
 const data = path.join(workspace, "data");
+const goBinary = process.env.KAISOURCE_TEST_GO || "go";
 let started = false;
 function run(command, args, env = {}) {
-  const result = spawnSync(command, args, {
+  const result = spawnSync(command === "go" ? goBinary : command, args, {
     cwd: path.join(root, "kaiyuanshe"),
     env: { ...process.env, ...env },
     encoding: "utf8", timeout: 120000, maxBuffer: 4 * 1024 * 1024,
@@ -23,7 +24,7 @@ function run(command, args, env = {}) {
   return result.stdout;
 }
 try {
-  run("initdb", ["-D", data, "-A", "trust", "--no-locale"]);
+  run("initdb", ["-D", data, "-A", "trust", "--no-locale", "--encoding=UTF8"]);
   run("pg_ctl", ["-D", data, "-l", path.join(workspace, "postgres.log"), "-o",
     `-k ${workspace} -p 55439 -c listen_addresses=''`, "-w", "start"]);
   started = true;
@@ -34,6 +35,8 @@ try {
   url.searchParams.set("sslmode", "disable");
   const output = run("go", ["test", "./integration", "-count=1", "-v"], {
     KAISOURCE_TEST_DATABASE_URL: url.toString(),
+    KAISOURCE_TEST_REPOSITORY: root,
+    KAISOURCE_TEST_NEXTAUTH: process.argv.includes("--nextauth") ? "true" : "",
     KAISOURCE_CONFIG_FILE: "",
     KAISOURCE_DATABASE_URL: url.toString(),
     DATABASE_URL: url.toString(),
