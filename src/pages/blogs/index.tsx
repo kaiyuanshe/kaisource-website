@@ -58,7 +58,7 @@ export default function BlogsPage() {
   const [selectedTag] = useState("");
   const [sortOrder] = useState<"asc" | "desc">("desc");
   const [wechatModalVisible, setWechatModalVisible] = useState(false);
-  const [publishStatus, setPublishStatus] = useState(0);
+  const [publishStatus, setPublishStatus] = useState(2);
   const [category] = useState("blog");
 
   // 认证上下文
@@ -252,7 +252,8 @@ export default function BlogsPage() {
     if (status === "loading") return;
 
     const newPublishStatus =
-      status === "authenticated" && permissions.includes("event:write") ? 0 : 2;
+      status === "authenticated" &&
+      (permissions.includes("article:write") || permissions.includes("article:review")) ? 0 : 2;
 
     console.log("认证状态变化，发布状态:", newPublishStatus);
     setPublishStatus(newPublishStatus);
@@ -287,7 +288,7 @@ export default function BlogsPage() {
       <div className={styles.header}>
         <div className={styles.headerContent}>
           {status === "authenticated" &&
-            permissions.includes("event:write") && (
+            permissions.includes("article:write") && (
               <Link href="/blogs/new" className={styles.createButton}>
                 <Plus size={20} />
                 <LocalizedText>{"发布博客"}</LocalizedText>
@@ -368,7 +369,7 @@ export default function BlogsPage() {
           {!searchKeyword &&
             !selectedTag &&
             status === "authenticated" &&
-            permissions.includes("event:write") && (
+            permissions.includes("article:write") && (
               <Link href="/blogs/new" className={styles.createButton}>
                 <Plus className={styles.buttonIcon} />
                 <LocalizedText>{"发布第一个博客"}</LocalizedText>
@@ -403,7 +404,7 @@ export default function BlogsPage() {
                   )} */}
                       <div className={styles.cardActions}>
                         {status === "authenticated" &&
-                          permissions.includes("event:write") && (
+                          permissions.includes("article:write") && (
                             <Button
                               className={styles.actionIconButton}
                               onClick={(e) => {
@@ -428,7 +429,7 @@ export default function BlogsPage() {
                         />
 
                         {status === "authenticated" &&
-                          permissions.includes("event:write") && (
+                          permissions.includes("article:delete") && (
                             <Popconfirm
                               title={translateUiText("删除博客")}
                               description={translateUiText(
@@ -585,7 +586,7 @@ export default function BlogsPage() {
                 <div className={styles.listCell}>
                   <div className={styles.listActions}>
                     {status === "authenticated" &&
-                      permissions.includes("event:write") && (
+                      permissions.includes("article:write") && (
                         <Button
                           type="text"
                           size="small"
@@ -611,7 +612,7 @@ export default function BlogsPage() {
                     />
 
                     {status === "authenticated" &&
-                      permissions.includes("event:write") && (
+                      permissions.includes("article:delete") && (
                         <Popconfirm
                           title={translateUiText("删除博客")}
                           description={translateUiText(

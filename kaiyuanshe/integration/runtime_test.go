@@ -214,5 +214,6 @@ func TestIsolatedRuntime(t *testing.T) {
 		t.Fatal("category seed is not idempotent")
 	}
 	t.Run("shared authentication state", func(t *testing.T) { testSharedAuthenticationState(t, connection) })
+	t.Run("article operation permissions", func(t *testing.T) { testArticleOperationPermissions(t, connection, user.ID) })
 	t.Run("NextAuth real login and writes", func(t *testing.T) { testNextAuthRuntime(t, connection) })
 }

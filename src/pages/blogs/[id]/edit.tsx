@@ -56,7 +56,7 @@ export default function EditArticlePage() {
 
   // 权限检查
   const { isLoading: permissionLoading, hasPermission } =
-    usePermissionGuard("event:write");
+    usePermissionGuard("article:write");
 
   const [article, setArticle] = useState<Record<string, unknown>>();
   const [tags, setTags] = useState<string[]>([]);

@@ -100,7 +100,7 @@ export default function ArticleDetailPage() {
           </Link>
           <div className={styles.headerActions}>
             {status === "authenticated" &&
-            permissions.includes("event:review") ? (
+            permissions.includes("article:write") ? (
               <Button
                 icon={<Edit size={16} className={styles.actionIcon} />}
                 className={styles.actionButton}

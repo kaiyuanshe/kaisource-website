@@ -114,7 +114,13 @@ production runtime change.
 
 These results are not live-account, browser-login, OAuth-provider, real SMTP or
 Cloudinary acceptance. Native GitHub NextAuth still needs mapping to a shared
-API identity/token. Article editing UI still has legacy event-permission checks
-to align with the corrected backend article permissions. Full TypeScript
+API identity/token. Article create/edit and delete UI gates now use
+`article:write` and `article:delete`, respectively; article writers/reviewers
+can request unpublished lists. `test:article-permissions` evaluates the actual
+JSX gates for every article category, including both grid/list controls, but
+is not browser editing acceptance. Isolated API integration also verifies
+independent create/edit, review, and delete permissions, including rejection of
+anonymous and event-only actors. API draft visibility remains a separate
+release gate; client-side filters are not authorization. Full TypeScript
 checking, actual Vercel backend connectivity, provider credentials and final
 desktop/mobile production acceptance remain release gates.

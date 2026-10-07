@@ -3,6 +3,7 @@
   "version": "0.1.2",
   "private": true,
   "scripts": {
+    "test:article-permissions": "node --test tests/article-permissions.test.mjs",
     "test:auth-runtime": "npm run build && node scripts/test-backend-runtime.mjs --nextauth",
     "test:captcha": "node --test tests/captcha-routing.test.mjs",
     "test:locales": "node --test tests/site-locales.test.mjs",

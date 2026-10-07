@@ -84,7 +84,6 @@ export default function ArticleDetailPage() {
 
   // const isUnderReview = article?.publish_status === 1;
   // const isPublisher = article?.publisher_id?.toString() === session?.user?.uid;
-  // const canReview = permissions.includes('event:write');
 
   if (!article) {
     return (
@@ -114,7 +113,7 @@ export default function ArticleDetailPage() {
           </Link>
           <div className={styles.headerActions}>
             {status === "authenticated" &&
-            permissions.includes("event:write") ? (
+            permissions.includes("article:write") ? (
               <Button
                 icon={<Edit size={16} className={styles.actionIcon} />}
                 className={styles.actionButton}

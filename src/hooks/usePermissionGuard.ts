@@ -26,12 +26,8 @@ export function usePermissionGuard(
     }
 
     const checkPermission = async () => {
-      console.log('🔍 Checking permission:', requiredPermission);
-      console.log('📝 Session:', session);
-      
       // 如果未登录，重定向到登录页
       if (!session) {
-        console.log('❌ No session found, redirecting to login');
         const callbackUrl = encodeURIComponent(router.asPath);
         await router.replace(`${redirectTo}?callbackUrl=${callbackUrl}`);
         return;
@@ -41,11 +37,7 @@ export function usePermissionGuard(
       const permissions = (session.user as any)?.permissions || [];
       const hasRequiredPermission = permissions.includes(requiredPermission);
       
-      console.log('👤 User permissions:', permissions);
-      console.log('✅ Has required permission:', hasRequiredPermission);
-
       if (!hasRequiredPermission) {
-        console.log('❌ Access denied - insufficient permissions');
         // 可以重定向到无权限页面或首页
         await router.replace('/403'); 
         return;

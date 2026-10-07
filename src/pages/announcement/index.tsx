@@ -51,7 +51,7 @@ export default function AnnouncementPage() {
   const [selectedTag] = useState("");
   const [sortOrder] = useState<"asc" | "desc">("desc");
   const [wechatModalVisible, setWechatModalVisible] = useState(false);
-  const [publishStatus, setPublishStatus] = useState(0);
+  const [publishStatus, setPublishStatus] = useState(2);
   const [category] = useState("announcement");
 
   // 使用统一的认证上下文，避免重复调用 useSession
@@ -173,7 +173,8 @@ export default function AnnouncementPage() {
   useEffect(() => {
     if (status === "loading") return; // 等待认证状态确定
     const newPublishStatus =
-      status === "authenticated" && permissions.includes("event:write") ? 0 : 2;
+      status === "authenticated" &&
+      (permissions.includes("article:write") || permissions.includes("article:review")) ? 0 : 2;
     setPublishStatus(newPublishStatus);
 
     // 直接调用 loadarticles，避免 publishStatus 状态更新延迟
@@ -190,7 +191,7 @@ export default function AnnouncementPage() {
                <p className={styles.subtitle}>写下所思所感，遇见共鸣之人</p>
               </div> */}
           {status === "authenticated" &&
-            permissions.includes("event:write") && (
+            permissions.includes("article:write") && (
               <Link href="/announcement/new" className={styles.createButton}>
                 <Plus size={20} />
                 <LocalizedText>{"发布公告"}</LocalizedText>
@@ -271,7 +272,7 @@ export default function AnnouncementPage() {
           {!searchKeyword &&
             !selectedTag &&
             status === "authenticated" &&
-            permissions.includes("event:write") && (
+            permissions.includes("article:write") && (
               <Link href="/announcement/new" className={styles.createButton}>
                 <Plus className={styles.buttonIcon} />
                 <LocalizedText>{"发布第一个公告"}</LocalizedText>
@@ -306,7 +307,7 @@ export default function AnnouncementPage() {
                   )} */}
                       <div className={styles.cardActions}>
                         {status === "authenticated" &&
-                        permissions.includes("event:write") ? (
+                        permissions.includes("article:write") ? (
                           <Button
                             className={styles.actionIconButton}
                             onClick={(e) => {
@@ -332,7 +333,7 @@ export default function AnnouncementPage() {
                         />
 
                         {status === "authenticated" &&
-                        permissions.includes("event:write") ? (
+                        permissions.includes("article:delete") ? (
                           <Popconfirm
                             title={translateUiText("删除公告")}
                             description={translateUiText(
@@ -476,7 +477,7 @@ export default function AnnouncementPage() {
                 <div className={styles.listCell}>
                   <div className={styles.listActions}>
                     {status === "authenticated" &&
-                    permissions.includes("event:write") ? (
+                    permissions.includes("article:write") ? (
                       <Button
                         type="text"
                         size="small"
@@ -502,7 +503,7 @@ export default function AnnouncementPage() {
                     />
 
                     {status === "authenticated" &&
-                    permissions.includes("event:write") ? (
+                    permissions.includes("article:delete") ? (
                       <Popconfirm
                         title={translateUiText("删除公告")}
                         description={translateUiText("你确定删除这个公告吗？")}
