@@ -110,6 +110,10 @@ const nextConfig: NextConfig = {
             domain: "kaisource.org",
             defaultLocale: "en",
           },
+          {
+            domain: "www.kaisource.org",
+            defaultLocale: "en",
+          },
         ],
   },
   async rewrites() {
