@@ -1,5 +1,6 @@
 import type { Article } from "@/pages/api/article";
 import type { Event } from "@/pages/api/event";
+import { getCurrentLocale } from './currentLocale';
 
 type ApiResponse<T> = {
   code?: number;
@@ -9,10 +10,6 @@ type ApiResponse<T> = {
 
 const HOME_PAGE_SIZE = 3;
 const REQUEST_TIMEOUT_MS = 10000;
-
-function getCurrentLocale() {
-  return document.documentElement.lang || "zh-CN";
-}
 
 async function fetchPublicList<Item>(
   endpoint: string,

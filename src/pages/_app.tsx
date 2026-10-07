@@ -128,7 +128,9 @@ export default function App({
                   href={`https://kaiyuanshe.cn${pagePath}`}
                 />
               </Head>
-              <Component {...pageProps} />
+              {/* Remount locale-specific page state, not the session provider.
+                  Lists and details must reload content, not just relabel it. */}
+              <Component key={locale} {...pageProps} />
               {process.env.NEXT_PUBLIC_GA_ID && (
                 <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
               )}

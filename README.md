@@ -7,7 +7,7 @@ users, and deployment configuration that is not tied to a hosting platform.
 
 - Use the same application code for the Chinese and international sites.
 - Keep Chinese and English available on both sites. The domain selects the
-  default language; it does not select a separate application.
+  deployment's default language; switching language stays on the current domain.
 - Share articles, events, users, and permissions through one authoritative data
   source. Do not create an independently editable overseas copy.
 - Keep platform differences in environment variables and deployment adapters,
@@ -63,9 +63,19 @@ When public routes, names, or canonical domains change, update both files and
 run `npm run test:llms`. No production data or private APIs are needed to
 generate these static resources.
 
+## Locale deployment settings
+
+`SITE_DEFAULT_LOCALE` selects the default at build time (`en`, `zh-CN`, or
+`zh-TW`). Vercel and preview builds default to English; standalone/Azure builds
+default to Chinese. Next.js domain-locale routing is deliberately not used:
+switching on `www.kaisource.org` must stay there at `/zh-CN/...`, and switching
+back to English must retain the same origin and login session. Links preserve
+the current locale and route, including article/event IDs and query parameters.
+
 ## Build validation
 
 ```sh
+npm run test:locales
 npm run test:media-security # Live-account media policy with isolated fixtures.
 npm run build
 npm run test:backend-runtime # Requires local PostgreSQL tools; creates a disposable cluster.

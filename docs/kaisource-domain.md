@@ -1,10 +1,22 @@
 # KaiSource domain deployment
 
-The application uses Next.js domain locale routing:
+## Current international deployment
 
-- `kaiyuanshe.cn` defaults to `zh-CN`.
-- `kaisource.org` defaults to `en`.
-- Explicit locale routes and the language switcher remain available.
+`kaisource.org` now redirects to the Vercel site at `www.kaisource.org`.
+`kaiyuanshe.cn` remains on Azure. Do not apply the historical Azure `.org` DNS
+records below to the current international deployment.
+
+The same code selects its default locale at build time: Vercel/preview defaults
+to English, standalone/Azure to Chinese. `SITE_DEFAULT_LOCALE` can explicitly
+override either choice. All locales stay on the current domain. Next.js
+domain-locale routing is not used because it moves visitors to the other
+deployment and loses their login session during language switching.
+
+## Historical dual-domain Azure setup (rollback reference only)
+
+The following DNS, Nginx, and certificate examples document the original
+same-server deployment. They are retained for rollback reference, not as current
+instructions for pointing `kaisource.org` at Azure.
 
 ## DNS
 
@@ -21,9 +33,8 @@ must be complete before requesting the TLS certificate.
 
 ## Nginx
 
-The important requirement is preserving the request host when proxying to
-Next.js. The locale domain mapping cannot work if Nginx sends `localhost` as
-the upstream `Host`.
+Preserve the request host when proxying to Next.js, including authentication
+callbacks and same-origin API requests.
 
 ```nginx
 upstream kaiyuanshe_frontend {

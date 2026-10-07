@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 import { readdir } from "node:fs/promises";
 import path from "node:path";
+import { siteLocaleConfig } from "./src/lib/site-locales.mjs";
 
 const CLOUDINARY_IMAGE_EXTENSIONS = new Set([
   ".avif",
@@ -95,23 +96,10 @@ const nextConfig: NextConfig = {
     "rc-table",
     "rc-input",
   ],
-  i18n: {
-    locales: ["zh-CN", "zh-TW", "en"],
-    defaultLocale: isPreview ? "en" : "zh-CN",
-    localeDetection: false,
-    domains: isPreview
-      ? undefined
-      : [
-          {
-            domain: "kaiyuanshe.cn",
-            defaultLocale: "zh-CN",
-          },
-          {
-            domain: "www.kaisource.org",
-            defaultLocale: "en",
-          },
-        ],
-  },
+  // Next.js domain-locale routing redirects language changes (and subsequent
+  // links) to the other domain, losing this deployment's login session. Keep
+  // all locales on the current origin and select its default at build time.
+  i18n: siteLocaleConfig(),
   async rewrites() {
     if (isPreview) {
       return [{ source: "/v1/:path*", destination: "/api/preview/:path*" }];

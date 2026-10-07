@@ -87,10 +87,7 @@ export interface Event {
   translation_of?: number;
 }
 
-const getCurrentLocale = () =>
-  typeof document === "undefined"
-    ? "zh-CN"
-    : document.documentElement.lang || "zh-CN";
+import { getCurrentLocale } from '@/lib/currentLocale';
 
 // 分页返回数据结构
 export interface PaginatedEventData {
