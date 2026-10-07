@@ -1,7 +1,7 @@
 {
   "preview": {
-    "read_only": "只读预览",
-    "description": "展示官网已公开内容的快照，暂不开放登录和编辑。"
+    "read_only": "正在维护中",
+    "description": "网站仍可浏览，登录和编辑功能暂不可用。"
   },
   "site": {
     "name": "开源社",

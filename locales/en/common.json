@@ -1,7 +1,7 @@
 {
   "preview": {
-    "read_only": "Read-only preview",
-    "description": "Public content snapshot. Sign-in and editing are disabled."
+    "read_only": "Maintenance in progress",
+    "description": "You can still browse the site. Sign-in and editing are temporarily unavailable."
   },
   "site": {
     "name": "KaiSource",
