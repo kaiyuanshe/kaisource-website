@@ -1,3 +1,5 @@
+# Template only. Activate under .github/workflows/ after workflow write
+# permission is available for the new repository.
 name: CI Build Check
 
 on:

@@ -71,5 +71,9 @@ requirements for the next implementation phase, not completed runtime changes.
    access permissions, and a rollback target intact.
 
 The inherited Azure deployment workflow is intentionally absent from this
-repository. CI performs build and test checks only. Production deployment
-adapters must be introduced explicitly as part of the rollout review.
+repository. A build/test CI template is kept in
+`deploy/ci/github-actions.yml.example`, outside the active workflows directory,
+because the current GitHub credential lacks workflow write permission.
+Activating that template is a separate setup step; CI is not enabled yet.
+Production deployment adapters must be introduced explicitly as part of the
+rollout review.

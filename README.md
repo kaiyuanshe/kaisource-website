@@ -24,7 +24,12 @@ deployment adaptation and shared-database cutover are not complete yet. Creating
 this repository does not deploy the application or change the existing Azure
 services, database, DNS, or other contributors' access.
 
-The inherited Azure auto-deployment workflow has been removed. The legacy
+The inherited Azure auto-deployment workflow has been removed. The build/test
+workflow is retained as an inactive template at
+`deploy/ci/github-actions.yml.example`: the current GitHub credential does not
+have workflow write permission. No GitHub Actions workflow is enabled yet.
+
+The legacy
 `deploy.sh` remains for reference only: it assumes the original server layout,
 resets its checkout, and restarts production services. Do not run it for this
 repository.
