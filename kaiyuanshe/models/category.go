@@ -2,7 +2,6 @@ package models
 
 import (
 	"errors"
-	"log"
 
 	"gorm.io/gorm"
 )
@@ -91,7 +90,7 @@ func QueryCategories(filter CategoryFilter) ([]Category, int64, error) {
 	return categories, total, err
 }
 
-func InitCategories() {
+func InitCategories() error {
 	// 一级分类
 	appCategory := "App"
 	infraCategory := "Infra"
@@ -108,57 +107,24 @@ func InitCategories() {
 		"Identity", "Indexer", "Onramp", "Oracle", "Other Infra", "Privacy", "RPC", "Stablecoin", "Wallet", "Zero-Knowledge",
 	}
 
-	// 检查并创建 App
-	var appCat Category
-	if err := db.Where("name = ? ", appCategory).First(&appCat).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			appCat = Category{Name: appCategory}
-			db.Create(&appCat)
-			log.Println("Created category: App")
-		} else {
-			log.Fatalf("Query App category failed: %v", err)
-		}
-	}
-
-	// 检查并创建 Infra
-	var infraCat Category
-	if err := db.Where("name = ? ", infraCategory).First(&infraCat).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			infraCat = Category{Name: infraCategory}
-			db.Create(&infraCat)
-			log.Println("Created category: Infra")
-		} else {
-			log.Fatalf("Query Infra category failed: %v", err)
-		}
-	}
-
-	// 添加 App 的子分类
-	for _, sub := range appSubCategories {
-		var existSub Category
-		if err := db.Where("name = ? AND parent_id = ?", sub, appCat.ID).First(&existSub).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				subCat := Category{Name: sub, ParentId: &appCat.ID, FullName: appCat.Name + "-" + sub}
-				db.Create(&subCat)
-				log.Printf("Created sub-category under App: %s", sub)
-			} else {
-				log.Fatalf("Query App sub-category failed: %v", err)
+	// An operator can retry this explicit command after a failure. Do not leave
+	// a partial category tree or exit the process inside model code.
+	return db.Transaction(func(tx *gorm.DB) error {
+		for _, group := range []struct {
+			name     string
+			children []string
+		}{{appCategory, appSubCategories}, {infraCategory, infraSubCategories}} {
+			parent := Category{Name: group.name}
+			if err := tx.Where("name = ? AND parent_id IS NULL", group.name).FirstOrCreate(&parent).Error; err != nil {
+				return err
+			}
+			for _, name := range group.children {
+				child := Category{Name: name, ParentId: &parent.ID, FullName: parent.Name + "-" + name}
+				if err := tx.Where("name = ? AND parent_id = ?", name, parent.ID).FirstOrCreate(&child).Error; err != nil {
+					return err
+				}
 			}
 		}
-	}
-
-	// 添加 Infra 的子分类
-	for _, sub := range infraSubCategories {
-		var existSub Category
-		if err := db.Where("name = ? AND parent_id = ?", sub, infraCat.ID).First(&existSub).Error; err != nil {
-			if err == gorm.ErrRecordNotFound {
-				subCat := Category{Name: sub, ParentId: &infraCat.ID, FullName: infraCat.Name + "-" + sub}
-				db.Create(&subCat)
-				log.Printf("Created sub-category under Infra: %s", sub)
-			} else {
-				log.Fatalf("Query Infra sub-category failed: %v", err)
-			}
-		}
-	}
-
-	log.Println("Category initialization finished.")
+		return nil
+	})
 }

@@ -1,38 +1,19 @@
 package models
 
-import (
-	"kaiyuanshe/config"
-)
+import "gorm.io/gorm"
 
-var db = config.DB
+var db *gorm.DB
 
-func init() {
-	db.AutoMigrate(&Permission{})
-	db.AutoMigrate(&PermissionGroup{})
-	db.AutoMigrate(&Role{})
-	db.AutoMigrate(&User{})
-	db.AutoMigrate(&Event{})
-	db.AutoMigrate(&Recap{})
-	db.AutoMigrate(&Article{})
-	db.AutoMigrate(&Testnet{})
-	db.AutoMigrate(&Category{})
-	db.AutoMigrate(&Dapp{})
-	db.AutoMigrate(&Tutorial{})
-	db.AutoMigrate(&Feedback{})
-	db.AutoMigrate(&Post{})
-	db.AutoMigrate(&PostLike{})
-	db.AutoMigrate(&PostFavorite{})
-	db.AutoMigrate(&DailyStats{})
-	db.AutoMigrate(&Follow{})
-	db.AutoMigrate(&Session{})
-	db.AutoMigrate(&Agenda{})
-	db.AutoMigrate(&Speaker{})
-	db.AutoMigrate(&VolunteerCategory{})
-	db.AutoMigrate(&Volunteer{})
-	db.AutoMigrate(&Gift{})
-	db.AutoMigrate(&Community{})
-	db.AutoMigrate(&Member{})
+// BindDatabase is called once, before accepting requests, never during import.
+func BindDatabase(connection *gorm.DB) { db = connection }
 
-	InitRolesAndPermissions()
-	InitCategories()
+// MigrateSchema is an explicit release command, not a cold-start action.
+func MigrateSchema() error {
+	return db.AutoMigrate(
+		&Permission{}, &PermissionGroup{}, &Role{}, &User{}, &Event{}, &Recap{},
+		&Article{}, &Testnet{}, &Category{}, &Dapp{}, &Tutorial{}, &Feedback{},
+		&Post{}, &PostLike{}, &PostFavorite{}, &DailyStats{}, &Follow{},
+		&Session{}, &Agenda{}, &Speaker{}, &VolunteerCategory{}, &Volunteer{},
+		&Gift{}, &Community{}, &Member{},
+	)
 }

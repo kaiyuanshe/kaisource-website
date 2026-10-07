@@ -8,8 +8,14 @@ import (
 	"github.com/spf13/viper"
 )
 
-// JWT 密钥
-var jwtSecret = viper.GetString("jwt.secret")
+// Configuration is loaded explicitly at startup, not during package import.
+func jwtKey() ([]byte, error) {
+	secret := viper.GetString("jwt.secret")
+	if secret == "" {
+		return nil, errors.New("JWT signing is not configured")
+	}
+	return []byte(secret), nil
+}
 
 // 结构体定义 JWT 负载
 type Claims struct {
@@ -47,7 +53,11 @@ func GenerateToken(uid uint, email, avatar, username, github string, permissions
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(jwtSecret)) // 生成 Token
+	key, err := jwtKey()
+	if err != nil {
+		return "", err
+	}
+	return token.SignedString(key)
 }
 
 func GenerateTokenV2(id uint, email, username string, permissions []string) (string, error) {
@@ -64,17 +74,24 @@ func GenerateTokenV2(id uint, email, username string, permissions []string) (str
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString([]byte(jwtSecret)) // 生成 Token
+	key, err := jwtKey()
+	if err != nil {
+		return "", err
+	}
+	return token.SignedString(key)
 }
 
 // 解析 JWT 令牌
 func ParseToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(jwtSecret), nil
-	})
+		return jwtKey()
+	}, jwt.WithValidMethods([]string{"HS256"}))
 
-	if err != nil || !token.Valid {
+	if err != nil {
 		return nil, err
+	}
+	if !token.Valid {
+		return nil, errors.New("invalid token")
 	}
 
 	claims, ok := token.Claims.(*Claims)
@@ -88,11 +105,14 @@ func ParseToken(tokenString string) (*Claims, error) {
 // 解析 JWT 令牌
 func ParseTokenV2(tokenString string) (*ClaimsV2, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &ClaimsV2{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(jwtSecret), nil
-	})
+		return jwtKey()
+	}, jwt.WithValidMethods([]string{"HS256"}))
 
-	if err != nil || !token.Valid {
+	if err != nil {
 		return nil, err
+	}
+	if !token.Valid {
+		return nil, errors.New("invalid token")
 	}
 
 	claims, ok := token.Claims.(*ClaimsV2)

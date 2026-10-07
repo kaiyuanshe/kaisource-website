@@ -5,8 +5,8 @@ log:
   level: "debug"
   file: "logs/app.log"
 
-jwt: 
-secret: 
+jwt:
+  secret: ""
 
 # PostgreSQL 配置
 database:
@@ -16,6 +16,16 @@ database:
   password:     
   dbname:       
   sslmode:      
+  # Optional managed PostgreSQL URL; env DATABASE_URL takes precedence.
+  url: ""
+  max_open_conns: 5
+  max_idle_conns: 1
+  conn_max_lifetime_seconds: 300
+  connect_timeout_seconds: 10
+
+# Enable only on the one designated scheduler host, never on Vercel instances.
+scheduler:
+  enabled: false
 
 oauth:
   clientId: 
@@ -28,4 +38,3 @@ timer:
 
 validator:
   url: 
-

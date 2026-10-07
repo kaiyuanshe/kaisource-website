@@ -1,13 +1,14 @@
 package scheduler
 
 import (
+	"errors"
 	"kaiyuanshe/models"
 	"log"
 
 	"github.com/robfig/cron/v3"
 )
 
-func StartScheduler() {
+func StartScheduler() (*cron.Cron, error) {
 	c := cron.New()
 
 	// 每天凌晨 00:10 执行（避免并发、写入未完成）
@@ -19,9 +20,10 @@ func StartScheduler() {
 		}
 	})
 	if err != nil {
-		log.Fatal("Failed to schedule daily task:", err)
+		return nil, errors.New("failed to schedule daily task")
 	}
 
 	c.Start()
 	log.Println("Cron scheduler started.")
+	return c, nil
 }

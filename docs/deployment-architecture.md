@@ -52,8 +52,11 @@ callback URLs need explicit review before cutover.
 - Use durable shared rate-limit/state storage where necessary; process memory
   is not shared between deployment instances.
 
-The current source still has legacy startup behavior. The points above are the
-requirements for the next implementation phase, not completed runtime changes.
+The Go runtime now loads optional YAML/environment configuration explicitly,
+bounds connection pools, and separates serving, schema migration, seeding and
+statistics commands. These changes are tested against a disposable local
+PostgreSQL cluster. See `backend-runtime.md`. Secure shared-database connectivity
+and a production Go-runtime cutover remain uncompleted release gates.
 
 ## Vercel compatibility path
 

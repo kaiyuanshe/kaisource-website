@@ -47,10 +47,11 @@ migration boundaries and rollout plan.
 Install frontend dependencies with `npm install`, create `.env.local` from
 `.env.example`, and run `npm run dev`.
 
-The Go backend currently requires its own configuration and a development
-PostgreSQL database. Use `kaiyuanshe/config.example.yaml` as a starting point.
-Do not point a development instance at production: the inherited backend runs
-database migrations and data initialization during startup.
+The Go backend accepts environment configuration or optional YAML and needs an
+isolated development PostgreSQL database. Use `kaiyuanshe/config.example.yaml`
+as a starting point. Startup no longer migrates or seeds data; these are explicit
+commands. Never run a development migration against production. See
+`docs/backend-runtime.md` for runtime configuration and release gates.
 
 ## AI-readable site guide
 
@@ -66,6 +67,7 @@ generate these static resources.
 
 ```sh
 npm run build
+npm run test:backend-runtime # Requires local PostgreSQL tools; creates a disposable cluster.
 cd kaiyuanshe
 go test ./...
 go build ./...

@@ -59,11 +59,11 @@ func SetupRouter(r *gin.Engine) {
 
 	blog := r.Group("/v1/articles")
 	{
-		blog.POST("", middlewares.JWT("event:write"), controllers.CreateArticle)
-		blog.DELETE("/:id", middlewares.JWT("event:delete"), controllers.DeleteArticle)
-		blog.PUT("/:id", middlewares.JWT("event:write"), controllers.UpdateArticle)
+		blog.POST("", middlewares.JWT("article:write"), controllers.CreateArticle)
+		blog.DELETE("/:id", middlewares.JWT("article:delete"), controllers.DeleteArticle)
+		blog.PUT("/:id", middlewares.JWT("article:write"), controllers.UpdateArticle)
 		blog.GET("/:id", controllers.GetArticle)
 		blog.GET("", controllers.QueryArticles)
-		blog.PUT("/:id/status", middlewares.JWT("event:review"), controllers.UpdateArticlePublishStatus)
+		blog.PUT("/:id/status", middlewares.JWT("article:review"), controllers.UpdateArticlePublishStatus)
 	}
 }
