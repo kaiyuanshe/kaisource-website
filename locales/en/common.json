@@ -1,4 +1,8 @@
 {
+  "preview": {
+    "read_only": "Read-only preview",
+    "description": "Public content snapshot. Sign-in and editing are disabled."
+  },
   "site": {
     "name": "KaiSource",
     "legacy_name_note": "KaiYuanShe · 开源社",

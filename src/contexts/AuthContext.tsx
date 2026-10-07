@@ -1,11 +1,11 @@
-import React, { createContext, useContext, ReactNode } from 'react';
-import { useSession } from 'next-auth/react';
-import type { Session } from 'next-auth';
+import React, { createContext, useContext, ReactNode } from "react";
+import { useSession } from "next-auth/react";
+import type { Session } from "next-auth";
 
 // 认证上下文类型定义
 interface AuthContextType {
   session: Session | null;
-  status: 'loading' | 'authenticated' | 'unauthenticated';
+  status: "loading" | "authenticated" | "unauthenticated";
   isLoading: boolean;
   isAuthenticated: boolean;
 }
@@ -23,7 +23,7 @@ interface AuthProviderProps {
  * 直接使用 NextAuth 的 useSession，利用其内置的缓存和去重机制
  * 避免与 NextAuth 内部机制冲突
  */
-export function AuthProvider({ children }: AuthProviderProps) {
+function LiveAuthProvider({ children }: AuthProviderProps) {
   // 直接使用 NextAuth 的 useSession Hook
   const { data: session, status } = useSession();
 
@@ -31,30 +31,46 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const contextValue: AuthContextType = {
     session,
     status,
-    isLoading: status === 'loading',
-    isAuthenticated: status === 'authenticated',
+    isLoading: status === "loading",
+    isAuthenticated: status === "authenticated",
   };
 
   return (
-    <AuthContext.Provider value={contextValue}>
-      {children}
-    </AuthContext.Provider>
+    <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>
   );
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  if (process.env.NEXT_PUBLIC_SITE_PREVIEW_MODE === "true") {
+    return (
+      <AuthContext.Provider
+        value={{
+          session: null,
+          status: "unauthenticated",
+          isLoading: false,
+          isAuthenticated: false,
+        }}
+      >
+        {children}
+      </AuthContext.Provider>
+    );
+  }
+  return <LiveAuthProvider>{children}</LiveAuthProvider>;
 }
 
 /**
  * 自定义 Hook：获取认证上下文
  * 利用 NextAuth 内置的缓存机制，避免重复请求
- * 
+ *
  * @returns 认证上下文数据
  * @throws 当在 AuthProvider 外部使用时抛出错误
  */
 export function useAuth(): AuthContextType {
   const context = useContext(AuthContext);
-  
+
   if (context === undefined) {
-    throw new Error('useAuth 必须在 AuthProvider 内部使用');
+    throw new Error("useAuth 必须在 AuthProvider 内部使用");
   }
-  
+
   return context;
 }

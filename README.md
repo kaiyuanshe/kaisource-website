@@ -19,7 +19,12 @@ This repository starts from `kaiyuanshe/website` at commit
 `a76cada27ecab5dd7ebead771d4dd02e84dcf8b2`, including the full-site localization
 merged in PR #63. The original Git history and license are retained.
 
-The frontend is Next.js and the backend is Go/Gin with PostgreSQL. The Vercel
+The frontend is Next.js and the backend is Go/Gin with PostgreSQL. A temporary
+read-only showcase is available with `SITE_PREVIEW_MODE=true`; see
+[preview deployment](docs/preview-deployment.md) for its public-content snapshot
+and deliberately disabled sign-in/editing. This is not a production migration.
+
+The Vercel
 deployment adaptation and shared-database cutover are not complete yet. Creating
 this repository does not deploy the application or change the existing Azure
 services, database, DNS, or other contributors' access.

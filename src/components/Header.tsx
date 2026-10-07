@@ -822,6 +822,10 @@ export default function Header() {
                   </div>
                 )}
               </div>
+            ) : process.env.NEXT_PUBLIC_SITE_PREVIEW_MODE === "true" ? (
+              <span className={styles.loginButton}>
+                {t("preview.read_only")}
+              </span>
             ) : (
               <Link href="/login" className={styles.loginButton}>
                 {t("common.login")}
@@ -965,6 +969,10 @@ export default function Header() {
                       </button>
                     </div>
                   </div>
+                ) : process.env.NEXT_PUBLIC_SITE_PREVIEW_MODE === "true" ? (
+                  <span className={styles.mobileLoginButton}>
+                    {t("preview.read_only")}
+                  </span>
                 ) : (
                   <Link
                     href="/login"

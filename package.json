@@ -3,6 +3,7 @@
   "version": "0.1.2",
   "private": true,
   "scripts": {
+    "test:preview": "node --test tests/preview-content.test.mjs",
     "dev": "next dev",
     "dev:lint": "npm run lint & next dev",
     "build": "next build",

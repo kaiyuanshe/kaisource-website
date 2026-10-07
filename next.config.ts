@@ -1,54 +1,59 @@
-import type { NextConfig } from 'next'
-import { readdir } from 'node:fs/promises'
-import path from 'node:path'
+import type { NextConfig } from "next";
+import { readdir } from "node:fs/promises";
+import path from "node:path";
 
 const CLOUDINARY_IMAGE_EXTENSIONS = new Set([
-  '.avif',
-  '.gif',
-  '.jpeg',
-  '.jpg',
-  '.png',
-  '.svg',
-  '.webp'
-])
-const DEFAULT_CLOUDINARY_STATIC_FOLDER = 'kyswebsite/static'
+  ".avif",
+  ".gif",
+  ".jpeg",
+  ".jpg",
+  ".png",
+  ".svg",
+  ".webp",
+]);
+const DEFAULT_CLOUDINARY_STATIC_FOLDER = "kyswebsite/static";
+const isPreview = process.env.SITE_PREVIEW_MODE === "true";
 
 async function findStaticImages(directory: string): Promise<string[]> {
-  const entries = await readdir(directory, { withFileTypes: true })
+  const entries = await readdir(directory, { withFileTypes: true });
   const nestedFiles = await Promise.all(
     entries.map(async (entry) => {
-      const entryPath = path.join(directory, entry.name)
+      const entryPath = path.join(directory, entry.name);
 
       if (entry.isDirectory()) {
-        return findStaticImages(entryPath)
+        return findStaticImages(entryPath);
       }
 
       if (
         entry.isFile() &&
         CLOUDINARY_IMAGE_EXTENSIONS.has(path.extname(entry.name).toLowerCase())
       ) {
-        return [entryPath]
+        return [entryPath];
       }
 
-      return []
-    })
-  )
+      return [];
+    }),
+  );
 
-  return nestedFiles.flat()
+  return nestedFiles.flat();
 }
 
 function encodeCloudinaryPath(value: string) {
-  return value.split('/').map(encodeURIComponent).join('/')
+  return value.split("/").map(encodeURIComponent).join("/");
 }
 
 const nextConfig: NextConfig = {
+  env: {
+    NEXT_PUBLIC_SITE_PREVIEW_MODE: isPreview ? "true" : "false",
+    ...(isPreview ? { NEXT_PUBLIC_API_URL: "/v1" } : {}),
+  },
   /* config options here */
   experimental: {},
   typescript: {
-    ignoreBuildErrors: true // 忽略 TypeScript 检查
+    ignoreBuildErrors: true, // 忽略 TypeScript 检查
   },
   turbopack: {
-    root: process.cwd()
+    root: process.cwd(),
   },
   // 优化Webpack构建
   webpack: (config: any, { dev }: { dev: boolean; isServer: boolean }) => {
@@ -60,132 +65,147 @@ const nextConfig: NextConfig = {
         minimize: true,
         // 启用代码分割优化
         splitChunks: {
-          chunks: 'all',
+          chunks: "all",
           cacheGroups: {
             vendor: {
               test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all'
-            }
-          }
-        }
-      }
+              name: "vendors",
+              chunks: "all",
+            },
+          },
+        },
+      };
       // 限制CPU使用
-      config.parallelism = 2
+      config.parallelism = 2;
     }
-    return config
+    return config;
   },
   reactStrictMode: true,
   transpilePackages: [
-    '@ant-design',
-    'antd',
-    'rc-util',
-    'rc-pagination',
-    'rc-picker',
-    'rc-tree',
-    'rc-table',
-    'rc-input'
+    "@ant-design",
+    "antd",
+    "rc-util",
+    "rc-pagination",
+    "rc-picker",
+    "rc-tree",
+    "rc-table",
+    "rc-input",
   ],
   i18n: {
-    locales: ['zh-CN', 'zh-TW', 'en'],
-    defaultLocale: 'zh-CN',
+    locales: ["zh-CN", "zh-TW", "en"],
+    defaultLocale: isPreview ? "en" : "zh-CN",
     localeDetection: false,
-    domains: [
-      {
-        domain: 'kaiyuanshe.cn',
-        defaultLocale: 'zh-CN'
-      },
-      {
-        domain: 'kaisource.org',
-        defaultLocale: 'en'
-      }
-    ]
+    domains: isPreview
+      ? undefined
+      : [
+          {
+            domain: "kaiyuanshe.cn",
+            defaultLocale: "zh-CN",
+          },
+          {
+            domain: "kaisource.org",
+            defaultLocale: "en",
+          },
+        ],
+  },
+  async rewrites() {
+    return isPreview
+      ? [{ source: "/v1/:path*", destination: "/api/preview/:path*" }]
+      : [];
   },
   images: {
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com'
+        protocol: "https",
+        hostname: "res.cloudinary.com",
       },
       {
-        protocol: 'https',
-        hostname: 'avatars.githubusercontent.com'
-      }
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
+      },
     ],
-    formats: ['image/webp', 'image/avif'],
+    formats: ["image/webp", "image/avif"],
     minimumCacheTTL: 60,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384]
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
   async redirects() {
-    if (process.env.CLOUDINARY_STATIC_ASSETS !== 'true') {
-      return []
+    if (process.env.CLOUDINARY_STATIC_ASSETS !== "true") {
+      return [];
     }
 
     const cloudName =
       process.env.CLOUDINARY_CLOUD_NAME ||
-      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME
+      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
 
     if (!cloudName) {
       throw new Error(
-        'CLOUDINARY_STATIC_ASSETS requires CLOUDINARY_CLOUD_NAME or NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME'
-      )
+        "CLOUDINARY_STATIC_ASSETS requires CLOUDINARY_CLOUD_NAME or NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME",
+      );
     }
 
-    const publicDirectory = path.join(process.cwd(), 'public')
+    const publicDirectory = path.join(process.cwd(), "public");
     const folder = (
       process.env.CLOUDINARY_STATIC_FOLDER || DEFAULT_CLOUDINARY_STATIC_FOLDER
-    ).replace(/^\/+|\/+$/g, '')
+    ).replace(/^\/+|\/+$/g, "");
 
-    if (!folder || folder.split('/').includes('..')) {
+    if (!folder || folder.split("/").includes("..")) {
       throw new Error(
-        `Invalid CLOUDINARY_STATIC_FOLDER: ${process.env.CLOUDINARY_STATIC_FOLDER}`
-      )
+        `Invalid CLOUDINARY_STATIC_FOLDER: ${process.env.CLOUDINARY_STATIC_FOLDER}`,
+      );
     }
 
-    const files = await findStaticImages(publicDirectory)
+    const files = await findStaticImages(publicDirectory);
 
     return files.map((file) => {
       const relativePath = path
         .relative(publicDirectory, file)
         .split(path.sep)
-        .join('/')
+        .join("/");
 
       if (!/^[A-Za-z0-9._/-]+$/.test(relativePath)) {
         throw new Error(
-          `Static image paths may only contain letters, numbers, dots, dashes and underscores: ${relativePath}`
-        )
+          `Static image paths may only contain letters, numbers, dots, dashes and underscores: ${relativePath}`,
+        );
       }
 
       return {
         source: `/${relativePath}`,
         destination: `https://res.cloudinary.com/${encodeURIComponent(cloudName)}/image/upload/${encodeCloudinaryPath(`${folder}/${relativePath}`)}`,
-        permanent: true
-      }
-    })
+        permanent: true,
+      };
+    });
   },
   async headers() {
     return [
+      ...(isPreview
+        ? [
+            {
+              source: "/:path*",
+              headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }],
+            },
+          ]
+        : []),
       {
-        source: '/_next/image(.*)',
+        source: "/_next/image(.*)",
         headers: [
           {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
-        ]
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable",
+          },
+        ],
       },
       {
-        source: '/img/(.*)',
+        source: "/img/(.*)",
         headers: [
           {
-            key: 'Cache-Control',
-            value: 'public, max-age=3600, must-revalidate'
-          }
-        ]
-      }
-    ]
-  }
-}
+            key: "Cache-Control",
+            value: "public, max-age=3600, must-revalidate",
+          },
+        ],
+      },
+    ];
+  },
+};
 
-export default nextConfig
+export default nextConfig;

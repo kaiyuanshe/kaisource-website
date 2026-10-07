@@ -1,7 +1,8 @@
-import { ReactNode } from 'react';
-import Header from './Header';
-import Footer from './Footer';
-import styles from './Layout.module.css';
+import { ReactNode } from "react";
+import Header from "./Header";
+import Footer from "./Footer";
+import PreviewNotice from "./PreviewNotice";
+import styles from "./Layout.module.css";
 
 interface LayoutProps {
   children: ReactNode;
@@ -9,7 +10,7 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   // const router = useRouter();
-  
+
   // Define routes that should hide the navbar
   // const hideNavbarRoutes = [
   //   '/blogs/[id]',
@@ -17,7 +18,7 @@ export default function Layout({ children }: LayoutProps) {
   //   '/blogs/[id]/edit',
   //   '/events/[id]/edit'
   // ];
-  
+
   // // Check if current route should hide navbar
   // const shouldHideNavbar = hideNavbarRoutes.some(route => {
   //   // Convert route pattern to regex
@@ -29,7 +30,10 @@ export default function Layout({ children }: LayoutProps) {
     <div className={styles.layout}>
       {/* {!shouldHideNavbar && <Header />} */}
       <Header />
-      <main className={styles.main}>{children}</main>
+      <main className={styles.main}>
+        <PreviewNotice />
+        {children}
+      </main>
       <Footer />
     </div>
   );
