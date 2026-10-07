@@ -27,10 +27,23 @@ export interface LoginResult {
   data?: LoginUser
 }
 
-const apiUrl = process.env.NEXT_PUBLIC_API_URL
+const getApiUrl = () => {
+  // NextAuth authorizers run on the server, where a relative URL cannot be
+  // fetched. Browser calls keep using the same-origin /v1 proxy.
+  if (typeof window === 'undefined') {
+    const internalUrl = process.env.INTERNAL_API_URL
+    if (internalUrl) return internalUrl.replace(/\/+$/, '')
+
+    const proxyOrigin = process.env.API_PROXY_ORIGIN
+    if (proxyOrigin) return `${proxyOrigin.replace(/\/+$/, '')}/v1`
+  }
+
+  return process.env.NEXT_PUBLIC_API_URL || '/v1'
+}
 
 export const loginUser = async (params: LoginParams): Promise<LoginResult> => {
   try {
+    const apiUrl = getApiUrl()
     if (!apiUrl) {
       throw new Error('API URL is not defined')
     }
@@ -74,6 +87,7 @@ export const loginWithEmail = async (
   params: EmailLoginParams
 ): Promise<LoginResult> => {
   try {
+    const apiUrl = getApiUrl()
     if (!apiUrl) {
       throw new Error('API URL is not defined')
     }
@@ -149,6 +163,7 @@ export const registerUser = async (
   params: RegisterParams
 ): Promise<RegisterResult> => {
   try {
+    const apiUrl = getApiUrl()
     if (!apiUrl) {
       throw new Error('API URL is not defined')
     }
@@ -196,6 +211,7 @@ export const RegisterVerifyAndLogin = async (
   params: RegisterVerifyLoginParams
 ): Promise<LoginResult> => {
   try {
+    const apiUrl = getApiUrl()
     if (!apiUrl) {
       throw new Error('API URL is not defined')
     }

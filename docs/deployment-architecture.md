@@ -55,6 +55,21 @@ callback URLs need explicit review before cutover.
 The current source still has legacy startup behavior. The points above are the
 requirements for the next implementation phase, not completed runtime changes.
 
+## Vercel compatibility path
+
+The international frontend can run in normal mode on Vercel while continuing
+to use the existing Go API and PostgreSQL dataset as the single authoritative
+source. Set `SITE_PREVIEW_MODE=false`, `NEXT_PUBLIC_API_URL=/v1`, and
+`API_PROXY_ORIGIN=https://kaiyuanshe.cn`. Next.js then rewrites same-origin
+`/v1/*` requests to the shared API. Set `INTERNAL_API_URL` to the absolute
+`/v1` endpoint as well, because NextAuth credential providers execute on the
+server and cannot fetch a relative URL.
+
+This is a production-compatible shared-backend deployment, not a claim that
+the Go service or PostgreSQL have already moved into Vercel. It preserves the
+Chinese Azure deployment and avoids duplicating production data while the Go
+service is adapted for a managed/serverless runtime in a later release.
+
 ## Rollout gates
 
 1. Adapt backend configuration, database connection management, startup, logs,
