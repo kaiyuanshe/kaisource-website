@@ -107,10 +107,6 @@ const nextConfig: NextConfig = {
             defaultLocale: "zh-CN",
           },
           {
-            domain: "kaisource.org",
-            defaultLocale: "en",
-          },
-          {
             domain: "www.kaisource.org",
             defaultLocale: "en",
           },
