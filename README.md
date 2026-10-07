@@ -1,40 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# KaiSource Website
 
-## Getting Started
+The unified KaiSource website: one multilingual codebase, shared content and
+users, and deployment configuration that is not tied to a hosting platform.
 
-First, run the development server:
+## Project principles
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- Use the same application code for the Chinese and international sites.
+- Keep Chinese and English available on both sites. The domain selects the
+  default language; it does not select a separate application.
+- Share articles, events, users, and permissions through one authoritative data
+  source. Do not create an independently editable overseas copy.
+- Keep platform differences in environment variables and deployment adapters,
+  rather than long-lived regional branches.
+
+## Current status
+
+This repository starts from `kaiyuanshe/website` at commit
+`a76cada27ecab5dd7ebead771d4dd02e84dcf8b2`, including the full-site localization
+merged in PR #63. The original Git history and license are retained.
+
+The frontend is Next.js and the backend is Go/Gin with PostgreSQL. The Vercel
+deployment adaptation and shared-database cutover are not complete yet. Creating
+this repository does not deploy the application or change the existing Azure
+services, database, DNS, or other contributors' access.
+
+The inherited Azure auto-deployment workflow has been removed. The legacy
+`deploy.sh` remains for reference only: it assumes the original server layout,
+resets its checkout, and restarts production services. Do not run it for this
+repository.
+
+See [the deployment architecture](docs/deployment-architecture.md) for the
+migration boundaries and rollout plan.
+
+## Local development
+
+Install frontend dependencies with `npm install`, create `.env.local` from
+`.env.example`, and run `npm run dev`.
+
+The Go backend currently requires its own configuration and a development
+PostgreSQL database. Use `kaiyuanshe/config.example.yaml` as a starting point.
+Do not point a development instance at production: the inherited backend runs
+database migrations and data initialization during startup.
+
+## Validation
+
+```sh
+npm run build
+cd kaiyuanshe
+go test ./...
+go build ./...
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The inherited Next.js configuration skips TypeScript type checking during a
+build; a successful build is not a substitute for a separate type check.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## Repository relationship
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
-
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
-
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+`origin` is `kaiyuanshe/kaisource-website`. `upstream` is the original
+`kaiyuanshe/website` repository. Until migration is complete, review and integrate
+upstream changes here instead of maintaining separate regional features.
+Do not push migration changes or deploy from this repository to the original
+production environment without an explicit cutover review.

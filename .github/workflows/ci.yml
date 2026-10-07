@@ -41,7 +41,11 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: 1.22
+          go-version-file: kaiyuanshe/go.mod
+
+      - name: Test Go Backend
+        working-directory: ./kaiyuanshe
+        run: go test ./...
 
       - name: Build Go Backend
         working-directory: ./kaiyuanshe
