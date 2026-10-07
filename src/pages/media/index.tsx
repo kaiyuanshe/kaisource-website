@@ -86,7 +86,8 @@ const MediaManager: React.FC<MediaManagerProps> = () => {
       if (page > 1 && nextCursor) params.append("next_cursor", nextCursor);
 
       const response = await fetch(`/api/cloudinary/images?${params}`);
-      const data: ImageListResponse = await response.json();
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Unable to load images');
 
       if (resetData || page === 1) {
         setImages(data.images);
@@ -97,8 +98,7 @@ const MediaManager: React.FC<MediaManagerProps> = () => {
       setTotal(data.total_count);
       setNextCursor(data.next_cursor);
     } catch (error) {
-      message.error("获取图片列表失败");
-      console.error(error);
+      message.error(error instanceof Error ? error.message : translateUiText("获取图片列表失败"));
     } finally {
       setLoading(false);
     }

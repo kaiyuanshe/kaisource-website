@@ -1,42 +1,42 @@
-const CLOUDINARY_UPLOAD = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/upload`;
-const CLOUDINARY_DELETE = `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/destroy`;
-
 /**
  * 上传图片到 Cloudinary
  * @param file - 要上传的图片文件
  * @returns
  */
 async function uploadImgToCloud(file: File) {
+  if (!['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'].includes(file.type) || file.size > 10 * 1024 * 1024) {
+    throw new Error('Please use a JPG, PNG, GIF, WebP, or AVIF image under 10 MB');
+  }
   // 获取签名
-  const signResponse = await fetch('/api/cloudinary/cloudinary-sign');
-  const { signature, timestamp } = await signResponse.json();
+  const signResponse = await fetch('/api/cloudinary/cloudinary-sign', { method: 'POST' });
+  const signed = await signResponse.json();
+  if (!signResponse.ok) throw new Error(signed.error || 'Image upload is unavailable');
+  const { signature, timestamp, public_id, overwrite, allowed_formats, cloudName, apiKey } = signed;
 
   const formData = new FormData();
   formData.append('file', file);
   formData.append('timestamp', timestamp);
   formData.append('signature', signature);
-  formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || '');
-  formData.append(
-    'folder',
-    process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_FOLDERS || 'images'
-  );
+  formData.append('api_key', apiKey);
+  formData.append('public_id', public_id);
+  formData.append('overwrite', String(overwrite));
+  formData.append('allowed_formats', allowed_formats);
 
   try {
-    const response = await fetch(CLOUDINARY_UPLOAD, {
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/upload`, {
       method: 'POST',
       body: formData,
     });
 
     const result = await response.json();
 
-    if (result.secure_url) {
+    if (response.ok && result.secure_url) {
       return Promise.resolve(result); // 返回包含图片信息的对象
     } else {
-      return Promise.reject(false);
+      throw new Error('Image upload failed');
     }
   } catch (error) {
-    console.error('图片上传错误：', error);
-    return Promise.reject(false);
+    throw error;
   }
 }
 
@@ -54,23 +54,19 @@ async function deleteImgFromCloud(publicId: string): Promise<boolean> {
         body: JSON.stringify({ publicId }),
       }
     );
-    const {
-      signature,
-      timestamp,
-    }: {
-      signature: string;
-      timestamp: number;
-    } = await signResponse.json();
+    const signed = await signResponse.json();
+    if (!signResponse.ok) throw new Error(signed.error || 'Image deletion is unavailable');
+    const { signature, timestamp, cloudName, apiKey } = signed;
 
     // 调用 Destroy API - 使用 form-urlencoded 格式
     const formData = new URLSearchParams();
     formData.append('invalidate', 'true');
     formData.append('public_id', publicId);
     formData.append('timestamp', timestamp.toString());
-    formData.append('api_key', process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY || '');
+    formData.append('api_key', apiKey);
     formData.append('signature', signature);
 
-    const response = await fetch(CLOUDINARY_DELETE, {
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${encodeURIComponent(cloudName)}/image/destroy`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: formData.toString(),
@@ -81,21 +77,12 @@ async function deleteImgFromCloud(publicId: string): Promise<boolean> {
       error?: string;
     } = await response.json();
     
-    console.log('Cloudinary 删除响应:', { 
-      status: response.status, 
-      statusText: response.statusText,
-      data,
-      publicId: publicId
-    });
-
     if (response.ok && data.result === 'ok') {
       return true;
     } else {
       throw new Error(data.error || `删除失败: ${data.result || 'unknown error'}`);
     }
   } catch (error) {
-    console.log('图片上传错误：', error);
-
     return false;
   }
 }

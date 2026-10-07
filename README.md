@@ -66,6 +66,7 @@ generate these static resources.
 ## Build validation
 
 ```sh
+npm run test:media-security # Live-account media policy with isolated fixtures.
 npm run build
 npm run test:backend-runtime # Requires local PostgreSQL tools; creates a disposable cluster.
 cd kaiyuanshe

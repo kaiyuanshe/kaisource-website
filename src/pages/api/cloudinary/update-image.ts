@@ -1,5 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import cloudinary from './cloudinaryConfig';
+import cloudinary from '@/server/cloudinary';
+import { requireMediaActor } from '@/server/media-auth';
+import { canMutateMedia } from '@/server/media-policy.mjs';
 
 interface UpdateImageRequest {
   public_id: string;
@@ -12,14 +14,21 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method not allowed' });
   }
+  const auth = await requireMediaActor(req, res);
+  if (!auth) return;
 
   try {
-    const { public_id, tags, context }: UpdateImageRequest = req.body;
+    const { public_id, tags, context }: UpdateImageRequest = req.body || {};
 
-    if (!public_id) {
-      return res.status(400).json({ error: 'public_id is required' });
+    if (!canMutateMedia(auth.actor, auth.root, public_id)) {
+      return res.status(403).json({ error: 'You cannot edit this image' });
+    }
+    if ((tags !== undefined && (!Array.isArray(tags) || tags.length > 20 || tags.some(tag => typeof tag !== 'string' || tag.length > 64 || !/^[\p{L}\p{N} _.-]+$/u.test(tag)))) ||
+        (context !== undefined && (!context || typeof context !== 'object' || Array.isArray(context) || Object.keys(context).length > 20 || Object.entries(context).some(([key, value]) => !/^[a-zA-Z0-9_-]{1,64}$/.test(key) || typeof value !== 'string' || value.length > 500)))) {
+      return res.status(400).json({ error: 'Invalid image metadata' });
     }
 
     const updateOptions: any = {};
@@ -44,7 +53,6 @@ export default async function handler(
       context: result.context 
     });
   } catch (error) {
-    console.error('更新图片元数据失败:', error);
-    res.status(500).json({ error: '更新图片元数据失败' });
+    res.status(502).json({ error: 'Image storage is temporarily unavailable' });
   }
 }

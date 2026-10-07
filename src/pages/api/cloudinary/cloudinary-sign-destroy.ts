@@ -1,35 +1,33 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import crypto from 'crypto';
+import cloudinary from '@/server/cloudinary';
+import { requireMediaActor } from '@/server/media-auth';
+import { canMutateMedia } from '@/server/media-policy.mjs';
 
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { publicId } = req.body;
+  const auth = await requireMediaActor(req, res);
+  if (!auth) return;
+  const { publicId } = req.body || {};
   const timestamp = Math.floor(Date.now() / 1000);
-  const apiSecret = process.env.CLOUDINARY_API_SECRET;
-
-  if (!apiSecret) {
-    return res.status(500).json({ error: 'Cloudinary is not configured' });
+  if (!canMutateMedia(auth.actor, auth.root, publicId)) {
+    return res.status(403).json({ error: 'You cannot delete this image' });
   }
 
-  if (!publicId) {
-    return res.status(400).json({ error: 'Missing publicId' });
-  }
-
-  // ⚠️ 字段顺序必须严格遵守 Cloudinary 的签名规则
-  const stringToSign = `invalidate=true&public_id=${publicId}&timestamp=${timestamp}`;
-  const signature = crypto
-    .createHash('sha1')
-    .update(stringToSign + apiSecret)
-    .digest('hex');
+  const signature = cloudinary.utils.api_sign_request(
+    { invalidate: true, public_id: publicId, timestamp }, process.env.CLOUDINARY_API_SECRET!
+  );
 
   return res.status(200).json({
     signature,
     timestamp,
+    cloudName: process.env.CLOUDINARY_CLOUD_NAME || process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
+    apiKey: process.env.CLOUDINARY_API_KEY || process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
   });
 }
