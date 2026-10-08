@@ -1,0 +1,29 @@
+[Unit]
+Description=KaiSource overseas API (parallel to unchanged domestic service)
+After=network.target postgresql.service
+Requires=postgresql.service
+
+[Service]
+Type=simple
+User=azureuser
+Group=azureuser
+WorkingDirectory=/home/azureuser/kaisource-api/current
+ExecStart=/home/azureuser/kaisource-api/current/server
+Environment=KAISOURCE_CONFIG_FILE=/home/azureuser/website/kaiyuanshe/config.yaml
+Environment=KAISOURCE_SERVER_HOST=127.0.0.1
+Environment=KAISOURCE_SERVER_PORT=8081
+Environment=KAISOURCE_SCHEDULER_ENABLED=false
+Environment=KAISOURCE_CRON_ENABLED=false
+Environment=KAISOURCE_EMAIL_REDIRECTURL=https://www.kaisource.org/login
+Environment=KAISOURCE_LOG_FILE=/home/azureuser/kaisource-api/api.log
+Environment=GIN_MODE=release
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/azureuser/kaisource-api
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

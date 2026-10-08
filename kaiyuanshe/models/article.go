@@ -137,10 +137,13 @@ func QueryArticles(filter ArticleFilter) ([]Article, int64, error) {
 					WHERE translations.translation_of = articles.id
 					AND translations.locale = ?
 					AND translations.deleted_at IS NULL
+					AND (? = 0 OR translations.publish_status = ?)
 				)
 			)`,
 			filter.Locale,
 			filter.Locale,
+			filter.PublishStatus,
+			filter.PublishStatus,
 		)
 	}
 
@@ -166,4 +169,37 @@ func QueryArticles(filter ArticleFilter) ([]Article, int64, error) {
 
 	err := query.Find(&articles).Error
 	return articles, total, err
+}
+
+// Resolve localization within the actor's visibility boundary. In particular,
+// a draft translation must not suppress or replace its published original.
+func (a *Article) GetVisibleByID(id uint, locale string, includeDrafts bool) error {
+	query := db.Preload("Publisher")
+	if !includeDrafts {
+		query = query.Where("publish_status = ?", 2)
+	}
+	var original Article
+	if err := query.First(&original, id).Error; err != nil {
+		return err
+	}
+	resolved := original
+	if locale != "" && original.Locale != locale {
+		rootID := original.ID
+		if original.TranslationOf != nil {
+			rootID = *original.TranslationOf
+		}
+		translationQuery := db.Preload("Publisher").Where("locale = ? AND (id = ? OR translation_of = ?)", locale, rootID, rootID)
+		if !includeDrafts {
+			translationQuery = translationQuery.Where("publish_status = ?", 2)
+		}
+		var translation Article
+		err := translationQuery.First(&translation).Error
+		if err == nil {
+			resolved = translation
+		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+	}
+	*a = resolved
+	return db.Model(a).Update("view_count", gorm.Expr("view_count + ?", 1)).Error
 }

@@ -67,8 +67,8 @@ func SetupRouter(r *gin.Engine) {
 		blog.POST("", middlewares.JWT("article:write"), controllers.CreateArticle)
 		blog.DELETE("/:id", middlewares.JWT("article:delete"), controllers.DeleteArticle)
 		blog.PUT("/:id", middlewares.JWT("article:write"), controllers.UpdateArticle)
-		blog.GET("/:id", controllers.GetArticle)
-		blog.GET("", controllers.QueryArticles)
+		blog.GET("/:id", middlewares.OptionalJWT(), controllers.GetArticle)
+		blog.GET("", middlewares.OptionalJWT(), controllers.QueryArticles)
 		blog.PUT("/:id/status", middlewares.JWT("article:review"), controllers.UpdateArticlePublishStatus)
 	}
 }

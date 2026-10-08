@@ -56,6 +56,17 @@ func CreateArticle(c *gin.Context) {
 	utils.SuccessResponse(c, http.StatusOK, "create success", article)
 }
 
+func canReadArticleDrafts(c *gin.Context) bool {
+	value, _ := c.Get("permissions")
+	permissions, _ := value.([]string)
+	for _, permission := range permissions {
+		if permission == "article:write" || permission == "article:review" {
+			return true
+		}
+	}
+	return false
+}
+
 func GetArticle(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
@@ -69,9 +80,9 @@ func GetArticle(c *gin.Context) {
 
 	locale := c.Query("locale")
 	if locale != "" {
-		err = article.GetLocalizedByID(uint(id), normalizeContentLocale(locale))
+		err = article.GetVisibleByID(uint(id), normalizeContentLocale(locale), canReadArticleDrafts(c))
 	} else {
-		err = article.GetByID(uint(id))
+		err = article.GetVisibleByID(uint(id), "", canReadArticleDrafts(c))
 	}
 	if err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid Article", nil)
@@ -88,6 +99,9 @@ func QueryArticles(c *gin.Context) {
 	category := c.Query("category")
 	order := c.DefaultQuery("order", "desc")
 	publishStatus, _ := strconv.Atoi(c.DefaultQuery("publish_status", "0"))
+	if !canReadArticleDrafts(c) {
+		publishStatus = 2
+	}
 	userId, _ := strconv.Atoi(c.Query("user_id"))
 	locale := normalizeContentLocale(c.DefaultQuery("locale", "zh-CN"))
 
@@ -133,7 +147,7 @@ func DeleteArticle(c *gin.Context) {
 	var article models.Article
 	article.ID = uint(id)
 
-	if err = article.GetByID(uint(id)); err != nil {
+	if err = article.GetVisibleByID(uint(id), "", canReadArticleDrafts(c)); err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid article", nil)
 		return
 	}
@@ -174,7 +188,7 @@ func UpdateArticle(c *gin.Context) {
 	var article models.Article
 	article.ID = uint(id)
 
-	if err = article.GetByID(uint(id)); err != nil {
+	if err = article.GetVisibleByID(uint(id), "", canReadArticleDrafts(c)); err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid article", nil)
 		return
 	}
@@ -239,7 +253,7 @@ func UpdateArticlePublishStatus(c *gin.Context) {
 	var article models.Article
 	article.ID = uint(id)
 
-	if err = article.GetByID(uint(id)); err != nil {
+	if err = article.GetVisibleByID(uint(id), "", canReadArticleDrafts(c)); err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid artcile", nil)
 		return
 	}

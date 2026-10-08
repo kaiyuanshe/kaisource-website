@@ -150,3 +150,24 @@ func TestInvalidRuntimePortAndConnectionTimeoutAreRejected(t *testing.T) {
 		t.Fatal("unbounded connection timeout accepted")
 	}
 }
+
+func TestSidecarCanBindLoopbackWithoutChangingLegacyDefault(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("KAISOURCE_CONFIG_FILE", "")
+	t.Setenv("JWT_SECRET", "runtime-test-key")
+	t.Setenv("KAISOURCE_SERVER_HOST", "127.0.0.1")
+	t.Setenv("KAISOURCE_SERVER_PORT", "8081")
+	if err := Load(); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateRuntime(); err != nil {
+		t.Fatal(err)
+	}
+	if viper.GetString("server.host") != "127.0.0.1" || viper.GetInt("server.port") != 8081 {
+		t.Fatal("sidecar bind overrides not applied")
+	}
+	viper.Set("server.host", "invalid.example.test")
+	if err := ValidateRuntime(); err == nil {
+		t.Fatal("invalid host accepted")
+	}
+}

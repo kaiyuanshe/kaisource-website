@@ -222,6 +222,7 @@ func TestIsolatedRuntime(t *testing.T) {
 		t.Fatal("category seed is not idempotent")
 	}
 	t.Run("shared authentication state", func(t *testing.T) { testSharedAuthenticationState(t, connection) })
+	t.Run("article draft visibility", func(t *testing.T) { testArticleReadPermissions(t, connection, user.ID) })
 	t.Run("article operation permissions", func(t *testing.T) { testArticleOperationPermissions(t, connection, user.ID) })
 	t.Run("protected Vercel cron routes", func(t *testing.T) {
 		for _, path := range []string{"/internal/cron/cleanup", "/internal/cron/stats"} {

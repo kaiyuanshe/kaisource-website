@@ -129,3 +129,5 @@ real registration/mail-activation/login flow with loopback SMTP. Run
 `npm run test:auth-runtime` to additionally exercise actual NextAuth, Secure
 cookies, CSRF, the shared user ID, and an authenticated article write. These are
 isolated tests, not verification of production accounts or external providers.
+
+For a staged overseas release, `KAISOURCE_SERVER_HOST=127.0.0.1` and `KAISOURCE_SERVER_PORT=8081` keep the dedicated process private. See `overseas-api-rollout.md`; existing domestic 8080 service must not be replaced. Anonymous article reads now enforce published status at the API, including translation fallback. Supplied bearer tokens are checked against current database permissions before draft access.
