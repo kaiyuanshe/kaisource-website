@@ -1,6 +1,8 @@
 # Acceptance checkpoint — October 8, 2026
 
-**Overall: not complete.** This records verified results and external gates,
+**Historical checkpoint.** The API-switch blocker below was resolved on October 9, 2026. See `acceptance-2026-10-09.md` for current results and remaining gates.
+
+**Overall at this checkpoint: not complete.** This records verified results and external gates,
 not blanket production readiness. See `release-audit-2026-10-08.md` for rollout,
 backup, service revisions and rollback locations.
 

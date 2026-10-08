@@ -155,3 +155,26 @@ must not be done silently.
    given extra permissions merely to obtain a test actor.
 5. Only after overseas acceptance and a stable observation period consider the
    separate domestic cutover. The domestic old deployment must remain running.
+
+
+## October 9, 2026 follow-up (Asia/Shanghai)
+
+The human authorization at the end of the prior session was applied to precise
+OpenBuild project commands. The recorded `vercel redeploy --prod` invocation
+was invalid for CLI 50.15.1; it was corrected to `--target production`, with
+the project-scoped credential passed through Keyrail. Configuration-only
+rebuild `dpl_2p6eUJy8zP6KnA9y7mThnCLxxhdJ` is Ready and attached to
+`www.kaisource.org`. The new overseas API route and PNG CAPTCHA now work.
+
+A normal source upload preserving Git metadata created
+`dpl_377HTVpdkQhwMA5aUgkmkf7Q32E9`, but REST metadata reports BLOCKED because
+the commit author lacks project-deployment permission. CLI UNKNOWN is not Ready.
+No metadata/author bypass was used; local `f0733b4` is not claimed deployed.
+
+Seven API and seven frontend non-destructive runtime check groups passed on the
+actual overseas domain; the current local 60 contracts, type/build checks,
+NextAuth/Go/PostgreSQL integration and Go/race checks passed. A same-service-config
+non-sending Go SMTP probe returned 535. OAuth/Cloudinary configuration and a
+permitted real test actor remain missing. Domestic original binary and PID,
+loopback database and sidecar listeners, and authentication-only cleanup remain
+unchanged. See `acceptance-2026-10-09.md` for commands, screenshots and boundaries.
