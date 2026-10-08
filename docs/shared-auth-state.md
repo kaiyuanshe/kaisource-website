@@ -1,9 +1,12 @@
 # Shared registration and authentication state
 
-This feature is prepared on `codex/shared-auth-state`, not deployed to Azure or
-the international production site. It changes the registration contract and
-adds database tables. Publish the compatible backend before publishing this
-frontend. A Git commit or isolated test is not a production cutover.
+This feature is prepared on `codex/shared-auth-state`. On 2026-10-08 its three
+authentication tables were installed on Azure, and a candidate API was briefly
+published then rolled back because the deployed Chinese form still used the
+old contract. Backend rollout is therefore not complete. A Vercel frontend
+production deployment was dispatched, but its terminal state is unverified.
+Review `release-audit-2026-10-08.md` before resuming. A Git commit, healthy
+public list endpoint, or isolated test does not prove compatible registration.
 
 ## Shared state and contract
 
@@ -71,11 +74,17 @@ verified traffic; do not introduce an unsigned upload or captcha bypass.
    outage/recovery and callback behavior still require staging verification.
 4. Explicitly migrate, then publish and test the new Go runtime using approved
    test identities. Verify trusted ingress/client IPs and appropriate limits.
-5. Publish the compatible frontend only after the new backend is healthy.
-   Preserve old Azure services and upstream configuration for rollback.
+5. Stage and verify **both** the Chinese Azure frontend and the international
+   Vercel frontend against the candidate backend before making any cutover.
+   The old forms neither send the email to captcha verification nor submit a
+   registration proof. Do not deploy the proof-enforcing backend under those
+   forms or introduce a proof bypass to keep them working. Preserve old Azure
+   services and upstream configuration for rollback. Coordinate frontend/API
+   cutover per origin only after end-to-end staging checks pass.
 6. Assign one operator/scheduler owner. The Vercel backend exposes protected
    `/internal/cron/cleanup` and `/internal/cron/stats` routes using `CRON_SECRET`;
-   the manifest schedules them daily by default. If an external scheduler is
+   the manifest declares daily schedules, but their handlers stay disabled
+   until `KAISOURCE_CRON_ENABLED=true` is set on the chosen owner. If an external scheduler is
    used instead, invoke the same routes or the explicit `go run . -mode cleanup`
    command, but do not run two independent owners. Cleanup removes expired
    authentication rows and does not start another scheduler at cold start.

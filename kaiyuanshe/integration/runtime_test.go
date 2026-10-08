@@ -35,6 +35,7 @@ func TestIsolatedRuntime(t *testing.T) {
 	t.Setenv("KAISOURCE_DATABASE_URL", dsn)
 	t.Setenv("JWT_SECRET", "isolated-runtime-test-key-not-for-production")
 	t.Setenv("CRON_SECRET", "isolated-cron-secret-not-for-production")
+	t.Setenv("KAISOURCE_CRON_ENABLED", "true")
 	t.Chdir(t.TempDir())
 	if config.DB != nil {
 		t.Fatal("import opened database")
@@ -239,5 +240,6 @@ func TestIsolatedRuntime(t *testing.T) {
 			}
 		}
 	})
+	t.Run("cron retries and failure isolation", func(t *testing.T) { testCronReliability(t, connection) })
 	t.Run("NextAuth real login and writes", func(t *testing.T) { testNextAuthRuntime(t, connection) })
 }

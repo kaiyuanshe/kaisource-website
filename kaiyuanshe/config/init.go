@@ -29,6 +29,7 @@ func Load() error {
 	viper.SetDefault("database.connect_timeout_seconds", 10)
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("scheduler.enabled", false)
+	viper.SetDefault("cron.enabled", false)
 	viper.SetDefault("email.timeout", 15)
 	for key, names := range map[string][]string{
 		"database.url":       {"DATABASE_URL"},
@@ -64,6 +65,12 @@ func ValidateRuntime() error {
 	}
 	if port := viper.GetInt("server.port"); port < 1 || port > 65535 {
 		return errors.New("server port must be between 1 and 65535")
+	}
+	if viper.GetBool("cron.enabled") && viper.GetBool("scheduler.enabled") {
+		return errors.New("choose one scheduler owner: cron or the legacy scheduler, not both")
+	}
+	if viper.GetBool("cron.enabled") && strings.TrimSpace(viper.GetString("cron.secret")) == "" {
+		return errors.New("CRON_SECRET is required when cron jobs are enabled")
 	}
 	return nil
 }

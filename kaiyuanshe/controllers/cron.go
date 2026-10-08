@@ -16,6 +16,11 @@ import (
 // authorizeCron accepts only the secret injected into the deployment's cron
 // job. It deliberately does not accept user sessions or query-string secrets.
 func authorizeCron(c *gin.Context) bool {
+	c.Header("Cache-Control", "no-store")
+	if !viper.GetBool("cron.enabled") {
+		utils.ErrorResponse(c, http.StatusServiceUnavailable, "Scheduled jobs are disabled", nil)
+		return false
+	}
 	secret := strings.TrimSpace(viper.GetString("cron.secret"))
 	if secret == "" {
 		utils.ErrorResponse(c, http.StatusServiceUnavailable, "Scheduled jobs are not configured", nil)
@@ -46,7 +51,9 @@ func RunDailyStatsCron(c *gin.Context) {
 	if !authorizeCron(c) {
 		return
 	}
-	if err := models.CollectDailyStats(); err != nil {
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 30*time.Second)
+	defer cancel()
+	if err := models.CollectDailyStatsContext(ctx); err != nil {
 		utils.ErrorResponse(c, http.StatusServiceUnavailable, "Daily statistics failed", nil)
 		return
 	}

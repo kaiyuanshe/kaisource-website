@@ -24,8 +24,35 @@ func TestLoadWithoutFileHasNoDatabaseSideEffects(t *testing.T) {
 	if viper.GetBool("scheduler.enabled") {
 		t.Fatal("scheduler must be opt-in")
 	}
+	if viper.GetBool("cron.enabled") {
+		t.Fatal("cron must be opt-in")
+	}
 	if err := ValidateRuntime(); err == nil {
 		t.Fatal("missing JWT key accepted")
+	}
+}
+
+func TestCronRequiresASecretAndOneSchedulerOwner(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("KAISOURCE_CONFIG_FILE", "")
+	t.Setenv("JWT_SECRET", "test-only-runtime-key")
+	t.Setenv("CRON_SECRET", "")
+	t.Setenv("KAISOURCE_CRON_SECRET", "")
+	t.Setenv("KAISOURCE_CRON_ENABLED", "true")
+	t.Setenv("KAISOURCE_SCHEDULER_ENABLED", "false")
+	if err := Load(); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateRuntime(); err == nil {
+		t.Fatal("enabled cron accepted missing secret")
+	}
+	t.Setenv("CRON_SECRET", "fixture-cron-secret")
+	if err := ValidateRuntime(); err != nil {
+		t.Fatal("explicit cron secret was not recognized", err)
+	}
+	t.Setenv("KAISOURCE_SCHEDULER_ENABLED", "true")
+	if err := ValidateRuntime(); err == nil {
+		t.Fatal("two scheduler owners accepted")
 	}
 }
 
