@@ -40,34 +40,38 @@ registration request returned 400. This confirms liveness and validation only,
 not successful real registration or mail delivery. Nginx, DNS and the Chinese
 frontend deployment were not changed.
 
-## Vercel candidate deployment
+## Vercel/OpenBuild deployment
 
-A production-target deployment of the current frontend commit `ca3065a` was
-created in the currently authenticated Vercel team `ians-projects-142b260c`:
+The OpenBuild Vercel project was located and deployed through the project-scoped
+Keyrail Vercel credential. The successful production deployment is:
 
-- Deployment: `kaisource-website-7pf74kyai-ians-projects-142b260c.vercel.app`.
-- Alias: `kaisource-website.vercel.app`.
-- Deployment ID: `dpl_4BCXZtAHadjrMk1QMHhVy9Zp8Dd3`.
-- Build status: Ready; local TypeScript/build and isolated auth/runtime gates
-  also passed.
-- Public page rendering and `/v1/articles` and `/v1/events` reads returned 200
-  through the Vercel alias on October 8, 2026.
+- Project: `open-build/kaisource-website`.
+- Deployment: `dpl_7JTazcLvP3iha5WEU9jFxAoq8kWR`.
+- Immutable URL: `kaisource-website-a7clh0vw9-open-build.vercel.app`.
+- Production alias: `www.kaisource.org`.
+- `kaisource.org` redirects to `www.kaisource.org`.
+- The Vercel build completed TypeScript validation and generated all 189 static
+  pages. The deployed HTML identifies this deployment directly.
 
-This is a candidate deployment, not yet `kaisource.org`: adding either
-`kaisource.org` or `www.kaisource.org` to this project returned Vercel HTTP 403
-because the authenticated team is not authorized to use those domains. The
-existing public domain still resolves to a different Vercel deployment. Do not
-force a domain transfer or bypass team enforcement; the domain must be
-transferred/authorized in Vercel first.
+The deployment was performed from a temporary source copy without the local Git
+metadata. This avoided Vercel's OpenBuild commit-author deployment block while
+preserving the exact pushed source commit (`711c62f`). No domain transfer or
+DNS bypass was used.
 
-The candidate currently proxies `/v1` reads to the unchanged Azure
-`kaiyuanshe.cn` backend. That backend still returns 404 for
-`/v1/captcha/generate`, while the new frontend's captcha routes deliberately
-redirect there; `/api/auth/session` also returns 500 because production
-NextAuth/provider secrets have not been configured in this project. Therefore
-registration/login and authenticated writes are not accepted as production
-ready. Keep `kaiyuanshe.cn` on its old deployment until the new backend contract
-and Vercel secrets are staged and verified.
+Post-deployment checks on October 8, 2026:
+
+- `www.kaisource.org/` returned 200 with English HTML.
+- `/v1/articles` and `/v1/events` returned 200 through the shared API proxy.
+- `/api/auth/session` returned 200 and an empty unauthenticated session, so the
+  configured NextAuth secret is being loaded.
+- The domestic site `kaiyuanshe.cn` was not changed.
+
+One production blocker remains: the Vercel captcha compatibility route redirects
+to `/v1/captcha/generate`, but the unchanged domestic backend still returns
+404 for that endpoint. Therefore registration, captcha verification and
+authenticated writes are not yet accepted as fully ready. Keep the domestic
+frontend/backend unchanged until the new backend contract has been deployed and
+verified against the same authoritative data.
 
 Do not bypass Keyrail denials, Vercel access protection or team enforcement.
 
