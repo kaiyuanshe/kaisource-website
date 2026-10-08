@@ -23,7 +23,7 @@ export default function KysreportsPage() {
   const [articles, setArticles] = useState<Record<string, any>[]>([]);
   const [loading, setLoading] = useState(false);
   const [wechatModalVisible, setWechatModalVisible] = useState(false);
-  const [publishStatus, setPublishStatus] = useState(0);
+  const [publishStatus, setPublishStatus] = useState(2);
   const [category] = useState("kys_annual_report");
 
   // 使用统一的认证上下文，避免重复调用 useSession
@@ -92,7 +92,8 @@ export default function KysreportsPage() {
   useEffect(() => {
     if (status === "loading") return; // 等待认证状态确定
     const newPublishStatus =
-      status === "authenticated" && permissions.includes("event:write") ? 0 : 2;
+      status === "authenticated" &&
+      (permissions.includes("article:write") || permissions.includes("article:review")) ? 0 : 2;
     setPublishStatus(newPublishStatus);
 
     // 直接调用 loadarticles，避免 publishStatus 状态更新延迟
@@ -109,7 +110,7 @@ export default function KysreportsPage() {
                <p className={styles.subtitle}>写下所思所感，遇见共鸣之人</p>
               </div> */}
           {status === "authenticated" &&
-            permissions.includes("event:write") && (
+            permissions.includes("article:write") && (
               <Link href="/kysreports/new" className={styles.createButton}>
                 <Plus size={20} />
                 <LocalizedText>{"发布年度报告"}</LocalizedText>
@@ -135,7 +136,7 @@ export default function KysreportsPage() {
             <LocalizedText>{"还没有创建任何年度报告"}</LocalizedText>
           </div>
           {status === "authenticated" &&
-            permissions.includes("event:write") && (
+            permissions.includes("article:write") && (
               <Link href="/kysreports/new" className={styles.createButton}>
                 <Plus className={styles.buttonIcon} />
                 <LocalizedText>{"发布第一个年度报告"}</LocalizedText>
@@ -173,8 +174,7 @@ export default function KysreportsPage() {
                       <div className={styles.cardActions}>
                         {/* 只有年度报告作者才可以编辑 */}
                         {status === "authenticated" &&
-                        article.publisher_id.toString() ===
-                          session?.user?.uid ? (
+                        permissions.includes("article:write") ? (
                           <Button
                             className={styles.actionIconButton}
                             onClick={(e) => {
@@ -182,7 +182,7 @@ export default function KysreportsPage() {
                               router.push(`/kysreports/${article.ID}/edit`);
                             }}
                             icon={<Edit className={styles.actionIcon} />}
-                            title={translateUiText("编辑活动")}
+                            title={translateUiText("编辑")}
                           />
                         ) : null}
 
@@ -200,7 +200,7 @@ export default function KysreportsPage() {
                         />
 
                         {status === "authenticated" &&
-                        permissions.includes("event:write") ? (
+                        permissions.includes("article:delete") ? (
                           <Popconfirm
                             title={translateUiText("删除年度报告")}
                             description={translateUiText(

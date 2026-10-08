@@ -42,7 +42,7 @@ export default function NewArticlePage() {
   const [form] = Form.useForm();
 
   // 权限检查
-  const { isLoading, hasPermission } = usePermissionGuard("event:write");
+  const { isLoading, hasPermission } = usePermissionGuard("article:write");
 
   const [tags, setTags] = useState<string[]>([]);
   const [inputVisible, setInputVisible] = useState(false);

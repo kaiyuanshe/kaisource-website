@@ -13,6 +13,9 @@
   for the total number of concurrent instances, not just one instance.
 - `PORT` controls the HTTP listener. `/healthz` checks database connectivity.
 - Migration, seeding, and daily statistics are separate operator commands.
+- Authentication state is durable in the shared database, with explicit schema
+  validation before serving and a separate operator cleanup command. See
+  `shared-auth-state.md` for contract changes, release order and verification.
 - JWT signing reads the configured key after initialization, rejects missing
   keys, and only accepts the existing HS256 algorithm.
 - Article routes use `article:write`, `article:delete`, and `article:review`, not
@@ -33,6 +36,7 @@ Set secrets through the deployment secret store, never Git or command arguments:
 | `KAISOURCE_CONFIG_FILE` | Optional explicit YAML path for standalone deployments |
 | `KAISOURCE_EMAIL_*` | Existing mail settings if registration email is enabled |
 | `EMAIL_REDIRECT_URL` | Verified registration callback; must match the chosen login flow |
+| `CRON_SECRET` | Secret for the Vercel cleanup/statistics HTTP jobs; never put it in a URL |
 
 Most YAML keys can use the `KAISOURCE_` prefix, upper case, with dots replaced
 by underscores. Existing OAuth camel-case keys have explicit
@@ -45,16 +49,23 @@ Run from `kaiyuanshe/` against an approved isolated database first:
 
 ```sh
 go run . -mode migrate
+go run . -mode migrate-auth
 go run . -mode seed
 go run . -mode serve
 go run . -mode stats
+go run . -mode cleanup
 ```
 
 `serve` never calls migration or seeding. `seed` is for a new database and is
 not part of a Vercel deployment. `stats` runs once; the designated scheduler
 owner may invoke it. No second scheduler should be enabled during migration.
 The legacy in-process scheduler is opt-in with `KAISOURCE_SCHEDULER_ENABLED`
-and is disabled when `VERCEL` is set.
+and is disabled when `VERCEL` is set. The Vercel backend manifest registers
+protected `/internal/cron/cleanup` and `/internal/cron/stats` jobs. They require
+`Authorization: Bearer $CRON_SECRET`; missing or incorrect credentials fail
+closed. The default schedule runs cleanup and statistics daily at 03:15 and
+03:30 UTC. Increase cleanup frequency only after confirming the Vercel plan and
+the desired operational owner.
 The HTTP server uses bounded request timeouts and drains requests on SIGTERM
 before closing its database pool. Connections use a 10-second connect timeout;
 ports, pool bounds, and connection lifetime are validated before serving.
@@ -63,10 +74,12 @@ Explicit category seeding is transactional and retryable; startup never seeds.
 ## Vercel deployment boundary
 
 The backend directory contains `go.mod`, `main.go`, and a `vercel.json` selecting
-the Go framework. A backend project can use `kaiyuanshe/` as its root. Vercel's
-Go preset supports Gin HTTP servers and injects `PORT`; see the official Go
-runtime documentation. This manifest does not replace the frontend's Next.js
-project configuration or cause a database cutover.
+the Go framework. A separate Vercel backend project can use `kaiyuanshe/` as its
+root. Its manifest explicitly runs `go build -o server .` because the project
+settings may otherwise retain a JavaScript build command from a previous link.
+Vercel's Go runtime supports an HTTP server that listens on its injected `PORT`;
+this repository's `main.go` does that. This manifest does not replace the
+frontend's Next.js project configuration or cause a database cutover.
 
 The live international frontend still proxies to the existing Azure API. Do not
 point it at the new Go runtime until all of these gates are met:
@@ -102,3 +115,8 @@ explicit migration, no implicit seed data, a bounded pool, real password login,
 wrong-password rejection, locale-specific lists, linked article translation,
 authenticated profile and article writes, anonymous rejection, and rejection of
 article writes by an event-only role. The cluster is stopped and removed afterward.
+It now also verifies durable captcha/registration proofs, shared limits and a
+real registration/mail-activation/login flow with loopback SMTP. Run
+`npm run test:auth-runtime` to additionally exercise actual NextAuth, Secure
+cookies, CSRF, the shared user ID, and an authenticated article write. These are
+isolated tests, not verification of production accounts or external providers.

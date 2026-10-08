@@ -65,9 +65,10 @@ type UpdateEventPublishStatusRequest struct {
 
 // register
 type RegisterRequest struct {
-	Username string `json:"username" binding:"required"`
-	Email    string `json:"email" binding:"required"`
-	Password string `json:"password" binding:"required"`
+	Username          string `json:"username" binding:"required,max=100"`
+	Email             string `json:"email" binding:"required,email,max=254"`
+	Password          string `json:"password" binding:"required,min=6,max=32"`
+	VerificationToken string `json:"verificationToken" binding:"required,max=128"`
 }
 
 // login

@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"kaiyuanshe/config"
 	"kaiyuanshe/logger"
@@ -132,6 +133,20 @@ func HandleRegister(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusBadRequest, "Invalid input data", nil)
 		return
 	}
+	if err := models.ConsumeRegistrationProof(c.Request.Context(), req.VerificationToken, req.Email); err != nil {
+		if errors.Is(err, models.ErrInvalidCaptcha) {
+			utils.ErrorResponse(c, http.StatusBadRequest, "Please complete verification again", nil)
+		} else {
+			utils.ErrorResponse(c, http.StatusServiceUnavailable, "Registration is temporarily unavailable", nil)
+		}
+		return
+	}
+	// Never create an orphaned pending account merely because mail settings were
+	// omitted from a serverless deployment. Actual delivery is still verified.
+	if config.Email == nil || config.Email.SMTPHost == "" || config.Email.SMTPPort == 0 || config.Email.FromEmail == "" || config.Email.RedirectUrl == "" {
+		utils.ErrorResponse(c, http.StatusServiceUnavailable, "Registration email is not configured", nil)
+		return
+	}
 
 	_, err := models.GetUserByEmail(req.Email)
 	if err == nil {
@@ -247,16 +262,25 @@ func HandleLoginVerify(c *gin.Context) {
 		return
 	}
 
+	if user.TokenExpiry == nil || user.VerifyToken == "" {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Verification link is invalid or expired", nil)
+		return
+	}
 	if err := utils.ValidateEmailVerificationToken(req.Token, user.VerifyToken, *user.TokenExpiry); err != nil {
 		utils.ErrorResponse(c, http.StatusBadRequest, err.Error(), nil)
 		return
 	}
 
-	user.IsVerified = true
-	if err := models.UpdateUser(user); err != nil {
-		utils.ErrorResponse(c, http.StatusInternalServerError, err.Error(), nil)
+	consumed, err := models.ConsumeEmailVerification(c.Request.Context(), user.ID, req.Token)
+	if err != nil {
+		utils.ErrorResponse(c, http.StatusServiceUnavailable, "Verification is temporarily unavailable", nil)
 		return
 	}
+	if !consumed {
+		utils.ErrorResponse(c, http.StatusBadRequest, "Verification link is invalid or expired", nil)
+		return
+	}
+	user.IsVerified, user.VerifyToken, user.TokenExpiry = true, "", nil
 
 	perms, err := models.GetUserWithPermissions(user.ID)
 	if err != nil {

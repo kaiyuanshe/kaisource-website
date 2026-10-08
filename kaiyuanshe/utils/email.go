@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"crypto/hmac"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
@@ -38,7 +39,7 @@ func ValidateEmailVerificationToken(token, storedToken string, expiresAt time.Ti
 	}
 
 	// 检查令牌是否匹配
-	if token != storedToken {
+	if !hmac.Equal([]byte(token), []byte(storedToken)) {
 		return fmt.Errorf("token mismatch")
 	}
 

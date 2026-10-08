@@ -127,7 +127,7 @@ export default function ArticleDetailPage() {
           </Link>
           <div className={styles.headerActions}>
             {status === "authenticated" &&
-            permissions.includes("event:write") ? (
+            permissions.includes("article:write") ? (
               <Button
                 icon={<Edit size={16} className={styles.actionIcon} />}
                 className={styles.actionButton}
@@ -138,7 +138,7 @@ export default function ArticleDetailPage() {
             ) : null}
             {/* {article.publish_status === 1 &&
                status === 'authenticated' &&
-               permissions.includes('event:write') ? (
+               permissions.includes('article:review') ? (
                <Button
                  icon={<CheckCircle size={16} className={styles.actionIcon} />}
                  className={styles.actionButton}

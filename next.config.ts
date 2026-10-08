@@ -99,7 +99,7 @@ const nextConfig: NextConfig = {
   // Next.js domain-locale routing redirects language changes (and subsequent
   // links) to the other domain, losing this deployment's login session. Keep
   // all locales on the current origin and select its default at build time.
-  i18n: siteLocaleConfig(),
+  i18n: siteLocaleConfig() as NextConfig["i18n"],
   async rewrites() {
     if (isPreview) {
       return [{ source: "/v1/:path*", destination: "/api/preview/:path*" }];

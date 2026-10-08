@@ -29,7 +29,7 @@ type RegisterFieldType = {
 };
 
 const LoginPage: React.FC = () => {
-  const { translateText: translateUiText } = useTranslation();
+  const { locale, translateText: translateUiText } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
   const [isRegister, setIsRegister] = useState(false);
@@ -241,12 +241,16 @@ const LoginPage: React.FC = () => {
         body: JSON.stringify({
           captchaId,
           captcha,
+          email: email.trim(),
         }),
       });
 
       const verifyResult = await verifyResponse.json();
-      if (!verifyResult.success) {
-        message.error(verifyResult.message || "验证码错误");
+      const verificationToken = verifyResult.data?.verificationToken;
+      if (!verifyResponse.ok || verifyResult.code !== 200 || typeof verificationToken !== 'string') {
+        message.error(locale === 'en'
+          ? (verifyResponse.status === 429 ? 'Too many attempts. Please try again later.' : 'Verification failed. Please refresh the image and try again.')
+          : (verifyResponse.status === 429 ? '尝试次数过多，请稍后再试。' : '验证未通过，请刷新图片后重试。'));
         // 刷新验证码
         captchaRef.current?.refreshCaptcha?.();
         return;
@@ -256,7 +260,7 @@ const LoginPage: React.FC = () => {
         email,
         password,
         username,
-        // verificationToken: '' // 暂时不需要验证码
+        verificationToken,
       });
 
       if (res.success) {
@@ -342,13 +346,13 @@ const LoginPage: React.FC = () => {
                   style={{ flex: 1, marginBottom: 0 }}
                   rules={[{ required: true, message: "请输入验证码" }]}
                 >
-                  <Input placeholder={translateUiText("验证码")} />
+                  <Input placeholder={translateUiText("验证码")} maxLength={6} autoComplete="off" />
                 </Form.Item>
                 <Captcha
                   ref={captchaRef}
                   onChange={setCaptchaId}
                   width={120}
-                  height={20}
+                  height={40}
                 />
               </div>
             </Form.Item>

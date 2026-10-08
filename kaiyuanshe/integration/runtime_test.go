@@ -34,6 +34,7 @@ func TestIsolatedRuntime(t *testing.T) {
 	t.Setenv("DATABASE_URL", dsn)
 	t.Setenv("KAISOURCE_DATABASE_URL", dsn)
 	t.Setenv("JWT_SECRET", "isolated-runtime-test-key-not-for-production")
+	t.Setenv("CRON_SECRET", "isolated-cron-secret-not-for-production")
 	t.Chdir(t.TempDir())
 	if config.DB != nil {
 		t.Fatal("import opened database")
@@ -57,8 +58,20 @@ func TestIsolatedRuntime(t *testing.T) {
 		t.Fatal("startup migrated schema")
 	}
 	models.BindDatabase(connection)
+	if err := models.ValidateAuthenticationSchema(); err == nil {
+		t.Fatal("serving allowed before explicit authentication migration")
+	}
 	if err := models.MigrateSchema(); err != nil {
 		t.Fatal("migration failed", err)
+	}
+	if err := models.ValidateAuthenticationSchema(); err == nil {
+		t.Fatal("general migration unexpectedly installed authentication state")
+	}
+	if err := models.MigrateAuthenticationSchema(); err != nil {
+		t.Fatal("authentication migration failed", err)
+	}
+	if err := models.ValidateAuthenticationSchema(); err != nil {
+		t.Fatal("explicit authentication migration was not recognized")
 	}
 	if pool.Stats().MaxOpenConnections != 5 {
 		t.Fatal("pool limit missing")
@@ -207,4 +220,24 @@ func TestIsolatedRuntime(t *testing.T) {
 	if count != 29 {
 		t.Fatal("category seed is not idempotent")
 	}
+	t.Run("shared authentication state", func(t *testing.T) { testSharedAuthenticationState(t, connection) })
+	t.Run("article operation permissions", func(t *testing.T) { testArticleOperationPermissions(t, connection, user.ID) })
+	t.Run("protected Vercel cron routes", func(t *testing.T) {
+		for _, path := range []string{"/internal/cron/cleanup", "/internal/cron/stats"} {
+			request := httptest.NewRequest(http.MethodGet, path, nil)
+			response := httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+			if response.Code != http.StatusUnauthorized {
+				t.Fatalf("%s accepted an unauthenticated request: %d", path, response.Code)
+			}
+			request = httptest.NewRequest(http.MethodGet, path, nil)
+			request.Header.Set("Authorization", "Bearer isolated-cron-secret-not-for-production")
+			response = httptest.NewRecorder()
+			router.ServeHTTP(response, request)
+			if response.Code != http.StatusOK {
+				t.Fatalf("%s failed with the configured secret: %d %s", path, response.Code, response.Body.String())
+			}
+		}
+	})
+	t.Run("NextAuth real login and writes", func(t *testing.T) { testNextAuthRuntime(t, connection) })
 }

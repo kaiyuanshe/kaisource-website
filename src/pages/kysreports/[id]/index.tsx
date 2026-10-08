@@ -98,7 +98,6 @@ export default function ArticleDetailPage() {
 
   // const isUnderReview = article?.publish_status === 1;
   // const isPublisher = article?.publisher_id?.toString() === session?.user?.uid;
-  // const canReview = permissions.includes('event:review');
 
   if (!article) {
     return (
@@ -128,7 +127,7 @@ export default function ArticleDetailPage() {
           </Link>
           <div className={styles.headerActions}>
             {status === "authenticated" &&
-            article.publisher_id.toString() === session?.user?.uid ? (
+            permissions.includes("article:write") ? (
               <Button
                 icon={<Edit size={16} className={styles.actionIcon} />}
                 className={styles.actionButton}
@@ -139,7 +138,7 @@ export default function ArticleDetailPage() {
             ) : null}
             {/* {article.publish_status === 1 &&
                status === 'authenticated' &&
-               permissions.includes('event:review') ? (
+               permissions.includes('article:review') ? (
                <Button
                  icon={<CheckCircle size={16} className={styles.actionIcon} />}
                  className={styles.actionButton}

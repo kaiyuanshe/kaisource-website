@@ -20,6 +20,7 @@ func Load() error {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	viper.SetDefault("server.port", 8080)
+	viper.SetDefault("server.trusted_proxies", []string{"127.0.0.1", "::1"})
 	viper.SetDefault("database.port", 5432)
 	viper.SetDefault("database.sslmode", "require")
 	viper.SetDefault("database.max_open_conns", 5)
