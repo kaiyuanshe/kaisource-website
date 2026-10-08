@@ -113,8 +113,10 @@ test command. The selected toolchain is local test infrastructure, not a
 production runtime change.
 
 These results are not live-account, browser-login, OAuth-provider, real SMTP or
-Cloudinary acceptance. Native GitHub NextAuth still needs mapping to a shared
-API identity/token. Article create/edit and delete UI gates now use
+Cloudinary acceptance. Native NextAuth GitHub sessions are explicitly rejected
+until a verified mapping to a shared API identity/token is implemented; the
+visible GitHub button continues through the existing backend OAuth code flow.
+Article create/edit and delete UI gates now use
 `article:write` and `article:delete`, respectively; article writers/reviewers
 can request unpublished lists. `test:article-permissions` evaluates the actual
 JSX gates for every article category, including both grid/list controls, but
