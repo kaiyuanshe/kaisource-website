@@ -54,6 +54,12 @@ test('anonymous sessions and OAuth identities without a shared API token cannot 
   }
 });
 
+test('native NextAuth GitHub sessions are not treated as shared accounts', () => {
+  const auth = readFileSync(new URL('../src/pages/api/auth/[...nextauth].ts', import.meta.url), 'utf8');
+  assert.match(auth, /account\?\.provider === ['"]github['"][\s\S]*?return false/);
+  assert.doesNotMatch(auth, /token\.permissions\s*=\s*\[['"]user['"]\]/);
+});
+
 test('authoritative API verification is required and API claims override cached session permissions', async () => {
   let called = false;
   const result = await authorizeMediaRequest(req, async () => session(), env, async (url, options) => {

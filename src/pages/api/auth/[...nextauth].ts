@@ -165,10 +165,12 @@ export default NextAuth({
     async signIn({ user, account, profile }) {
       // 处理GitHub登录
       if (account?.provider === 'github') {
-        // GitHub登录成功后的用户信息会自动包含邮箱（如果scope设置正确）
-        console.log('GitHub login user:', user);
-        console.log('GitHub profile:', profile);
-        return true;
+        // A native NextAuth GitHub session is not an authoritative KaiSource
+        // account. Accepting it would create a session without the shared API
+        // user ID, JWT, or current permissions. The visible login button uses
+        // the backend OAuth code flow, which resolves the provider identity in
+        // the authoritative database before issuing a session.
+        return false;
       }
       return true;
     },
@@ -186,15 +188,10 @@ export default NextAuth({
           token?: string;
         };
 
-        // 如果是GitHub登录，使用GitHub的用户信息
+        // GitHub provider sessions are rejected in signIn above until they can
+        // be mapped to an authoritative backend account and API token.
         if (account?.provider === 'github') {
-          token.uid = userWithExtras.id;
-          token.email = userWithExtras.email;
-          token.username = userWithExtras.name || (profile as any)?.login;
-          token.github = (profile as any)?.login || userWithExtras.github;
-          token.avatar = userWithExtras.image;
-          // GitHub登录用户默认权限
-          token.permissions = ['user'];
+          return token;
         } else {
           token.uid = userWithExtras.id;
           token.username = userWithExtras.username;
