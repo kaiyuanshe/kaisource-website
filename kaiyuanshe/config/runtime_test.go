@@ -106,6 +106,9 @@ func TestLegacyYAMLDSNHandlesIPv6AndEscapedCredentials(t *testing.T) {
 	if password != "test @password:with/symbols" || u.Query().Get("sslmode") != "disable" {
 		t.Fatal("explicit local SSL mode and credentials were not preserved")
 	}
+	if u.Query().Get("TimeZone") != "" {
+		t.Fatal("legacy URI must not include the driver-incompatible TimeZone query parameter")
+	}
 }
 
 func TestInvalidRuntimePortAndConnectionTimeoutAreRejected(t *testing.T) {
