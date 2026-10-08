@@ -73,9 +73,12 @@ verified traffic; do not introduce an unsigned upload or captcha bypass.
    test identities. Verify trusted ingress/client IPs and appropriate limits.
 5. Publish the compatible frontend only after the new backend is healthy.
    Preserve old Azure services and upstream configuration for rollback.
-6. Assign one operator/scheduler owner to periodically invoke
-   `go run . -mode cleanup` (at least hourly). This removes expired authentication
-   rows; it does not run statistics or start another scheduler at cold start.
+6. Assign one operator/scheduler owner. The Vercel backend exposes protected
+   `/internal/cron/cleanup` and `/internal/cron/stats` routes using `CRON_SECRET`;
+   the manifest schedules them daily by default. If an external scheduler is
+   used instead, invoke the same routes or the explicit `go run . -mode cleanup`
+   command, but do not run two independent owners. Cleanup removes expired
+   authentication rows and does not start another scheduler at cold start.
 
 On rollback, old binaries ignore the additive tables. Do not drop user data or
 change existing account access. Roll frontend/backend contracts back together.

@@ -36,6 +36,7 @@ Set secrets through the deployment secret store, never Git or command arguments:
 | `KAISOURCE_CONFIG_FILE` | Optional explicit YAML path for standalone deployments |
 | `KAISOURCE_EMAIL_*` | Existing mail settings if registration email is enabled |
 | `EMAIL_REDIRECT_URL` | Verified registration callback; must match the chosen login flow |
+| `CRON_SECRET` | Secret for the Vercel cleanup/statistics HTTP jobs; never put it in a URL |
 
 Most YAML keys can use the `KAISOURCE_` prefix, upper case, with dots replaced
 by underscores. Existing OAuth camel-case keys have explicit
@@ -59,7 +60,12 @@ go run . -mode cleanup
 not part of a Vercel deployment. `stats` runs once; the designated scheduler
 owner may invoke it. No second scheduler should be enabled during migration.
 The legacy in-process scheduler is opt-in with `KAISOURCE_SCHEDULER_ENABLED`
-and is disabled when `VERCEL` is set.
+and is disabled when `VERCEL` is set. The Vercel backend manifest registers
+protected `/internal/cron/cleanup` and `/internal/cron/stats` jobs. They require
+`Authorization: Bearer $CRON_SECRET`; missing or incorrect credentials fail
+closed. The default schedule runs cleanup and statistics daily at 03:15 and
+03:30 UTC. Increase cleanup frequency only after confirming the Vercel plan and
+the desired operational owner.
 The HTTP server uses bounded request timeouts and drains requests on SIGTERM
 before closing its database pool. Connections use a 10-second connect timeout;
 ports, pool bounds, and connection lifetime are validated before serving.

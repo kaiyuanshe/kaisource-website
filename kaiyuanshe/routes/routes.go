@@ -10,6 +10,8 @@ import (
 
 func SetupRouter(r *gin.Engine) {
 	r.Use(middlewares.Cors())
+	r.GET("/internal/cron/cleanup", controllers.RunAuthenticationCleanupCron)
+	r.GET("/internal/cron/stats", controllers.RunDailyStatsCron)
 
 	r.POST("/v1/login-email", middlewares.SharedAuthRateLimiter("login-email", 20, 5*time.Minute), controllers.HandleLoginV2)
 	r.POST("/v1/register-verify", middlewares.SharedAuthRateLimiter("register-verify", 20, 5*time.Minute), controllers.HandleLoginVerify)

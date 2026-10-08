@@ -1,5 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "go",
-  "buildCommand": "go build -o server ."
+  "buildCommand": "go build -o server .",
+  "crons": [
+    { "path": "/internal/cron/cleanup", "schedule": "15 3 * * *" },
+    { "path": "/internal/cron/stats", "schedule": "30 3 * * *" }
+  ]
 }
