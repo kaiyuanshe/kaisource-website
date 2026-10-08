@@ -68,10 +68,12 @@ Explicit category seeding is transactional and retryable; startup never seeds.
 ## Vercel deployment boundary
 
 The backend directory contains `go.mod`, `main.go`, and a `vercel.json` selecting
-the Go framework. A backend project can use `kaiyuanshe/` as its root. Vercel's
-Go preset supports Gin HTTP servers and injects `PORT`; see the official Go
-runtime documentation. This manifest does not replace the frontend's Next.js
-project configuration or cause a database cutover.
+the Go framework. A separate Vercel backend project can use `kaiyuanshe/` as its
+root. Its manifest explicitly runs `go build -o server .` because the project
+settings may otherwise retain a JavaScript build command from a previous link.
+Vercel's Go runtime supports an HTTP server that listens on its injected `PORT`;
+this repository's `main.go` does that. This manifest does not replace the
+frontend's Next.js project configuration or cause a database cutover.
 
 The live international frontend still proxies to the existing Azure API. Do not
 point it at the new Go runtime until all of these gates are met:
