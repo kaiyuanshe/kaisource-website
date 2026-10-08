@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GitHubProvider from 'next-auth/providers/github';
-import { loginUser, loginWithEmail, RegisterVerifyAndLogin } from '../login';
+import { loginUser, loginWithEmail, RegisterVerifyAndLogin } from '@/services/login';
 
 declare module 'next-auth' {
   interface Session {

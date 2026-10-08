@@ -79,6 +79,8 @@ npm run test:locales
 npm run test:media-security # Live-account media policy with isolated fixtures.
 npm run test:captcha
 npm run test:article-permissions # Article UI gates match the authoritative API permissions.
+npm run test:frontend-contracts # Real route exports, service boundaries and date formatting.
+npm run typecheck
 npm run build
 npm run test:backend-runtime # Requires local PostgreSQL tools; creates a disposable cluster.
 npm run test:auth-runtime # Builds Next and tests actual isolated NextAuth + Go + PostgreSQL.
@@ -87,8 +89,11 @@ go test ./...
 go build ./...
 ```
 
-The inherited Next.js configuration skips TypeScript type checking during a
-build; a successful build is not a substitute for a separate type check.
+Next.js builds now run TypeScript validation (`ignoreBuildErrors=false`).
+`npm run typecheck` regenerates route types and checks the project without
+building. Request helpers live in `src/services/`; `src/pages/api/` contains
+only real HTTP handlers. This type-check gate does not replace runtime or
+browser acceptance.
 
 ## Repository relationship
 

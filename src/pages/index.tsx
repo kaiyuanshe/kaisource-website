@@ -6,8 +6,8 @@ import EventSection, { EventSectionHeader } from '@/components/home/events/Event
 import ArticleSection from '@/components/home/article/Article'
 import CarouselSession from '@/components/home/carousel/Carousel'
 import PartnersSection from '@/components/home/partners/Partners'
-import type { Event } from '@/pages/api/event'
-import type { Article } from '@/pages/api/article'
+import type { Event } from '@/services/event'
+import type { Article } from '@/services/article'
 import { fetchHomeArticles, fetchHomeEvents } from '@/lib/homeData'
 import { useAsyncList } from '@/hooks/useAsyncList'
 

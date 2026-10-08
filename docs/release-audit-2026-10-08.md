@@ -69,7 +69,9 @@ if the existing policy does not allow the required operation.
 4. Map provider identities to real shared accounts, verify SMTP and both callback
    domains/languages, and accept existing account permissions without alteration.
 5. Choose one scheduler owner; never enable a second owner during migration.
-6. Fix remaining TypeScript diagnostics and enable real build type validation.
+6. Preserve the now-restored TypeScript build gate: the project checks without
+   errors and builds with `ignoreBuildErrors=false`. Do not mistake this for
+   production or mobile acceptance.
 7. Complete desktop/mobile bilingual, registration/login, article/event writes,
    translations and authenticated uploads acceptance on the actual deployment.
 

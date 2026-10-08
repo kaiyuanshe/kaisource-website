@@ -11,12 +11,12 @@ import {
 } from "antd";
 import { UploadIcon, Save, X } from "lucide-react";
 import styles from "./new.module.css";
-import UploadCardImg from "@/components/uploadCardImg/UploadCardImg";
+import UploadCardImg, { type CoverImage } from "@/components/uploadCardImg/UploadCardImg";
 import ContentLocaleFields, {
   getContentLocaleValues,
 } from "@/components/ContentLocaleFields";
 import router from "next/router";
-import { createCommunity } from "../api/comunity";
+import { createCommunity } from "@/services/comunity";
 import { usePermissionGuard } from "@/hooks/usePermissionGuard";
 import LocalizedText from "@/components/LocalizedText";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -32,7 +32,7 @@ export default function NewCityPage() {
   const { isLoading, hasPermission } = usePermissionGuard("event:write");
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [cloudinaryImg, setCloudinaryImg] = useState<Record<string, unknown>>();
+  const [cloudinaryImg, setCloudinaryImg] = useState<CoverImage | null>(null);
 
   const handleSubmit = async (values: Record<string, unknown>) => {
     try {

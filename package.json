@@ -3,6 +3,8 @@
   "version": "0.1.2",
   "private": true,
   "scripts": {
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:frontend-contracts": "node --test tests/frontend-contracts.test.mjs",
     "test:article-permissions": "node --test tests/article-permissions.test.mjs",
     "test:auth-runtime": "npm run build && node scripts/test-backend-runtime.mjs --nextauth",
     "test:captcha": "node --test tests/captcha-routing.test.mjs",

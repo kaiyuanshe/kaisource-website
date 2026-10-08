@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { RotateCcw, X, ImageIcon } from "lucide-react";
 import { App as AntdApp } from "antd";
 import Image from "next/image";
-import type { UploadProps, UploadFile } from "antd";
+import type { UploadProps, UploadFile, FormInstance } from "antd";
 import type { RcFile } from "antd/es/upload";
 import { uploadImgToCloud } from "@/lib/cloudinary";
 import { Upload } from "antd";
@@ -13,23 +13,18 @@ import { useTranslation } from "@/hooks/useTranslation";
 
 const { Dragger } = Upload;
 
-interface CloudinaryImage {
-  public_id: string;
+// Existing cover URLs do not necessarily have a Cloudinary identifier.
+export interface CoverImage {
+  public_id?: string;
   secure_url: string;
-  [key: string]: unknown;
-}
-
-interface FormInstance {
-  setFieldValue: (field: string, value: unknown) => void;
-  [key: string]: unknown;
 }
 
 export default function UploadCardImg(props: {
   previewUrl: string;
   setPreviewUrl: (url: string) => void;
-  cloudinaryImg: CloudinaryImage | null;
-  setCloudinaryImg: (img: CloudinaryImage | null) => void;
-  form?: FormInstance;
+  cloudinaryImg: CoverImage | null;
+  setCloudinaryImg: (img: CoverImage | null) => void;
+  form?: Pick<FormInstance, "setFieldValue">;
 }) {
   const { translateText: translateUiText } = useTranslation();
   const { previewUrl, setPreviewUrl, cloudinaryImg, setCloudinaryImg, form } =

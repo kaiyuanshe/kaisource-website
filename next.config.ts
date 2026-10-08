@@ -55,7 +55,7 @@ const nextConfig: NextConfig = {
   /* config options here */
   experimental: {},
   typescript: {
-    ignoreBuildErrors: true, // 忽略 TypeScript 检查
+    ignoreBuildErrors: false,
   },
   turbopack: {
     root: process.cwd(),

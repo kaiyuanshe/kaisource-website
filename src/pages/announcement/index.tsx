@@ -27,7 +27,7 @@ import Link from "next/link";
 import styles from "./index.module.css";
 import router from "next/router";
 import { useAuth } from "@/contexts/AuthContext";
-import { getArticles, deleteArticle } from "../api/article";
+import { getArticles, deleteArticle } from "@/services/article";
 import LocalizedText from "@/components/LocalizedText";
 import { useTranslation } from "@/hooks/useTranslation";
 

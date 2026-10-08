@@ -6,8 +6,8 @@ import { ArrowLeft, Calendar, Users, Video, Mic, Save } from "lucide-react";
 import styles from "./recap.module.css";
 import { SiX } from "react-icons/si";
 import dynamic from "next/dynamic";
-import { getEventById } from "@/pages/api/event";
-import { createRecap } from "@/pages/api/recap";
+import { getEventById, type Event } from "@/services/event";
+import { createRecap } from "@/services/recap";
 import LocalizedText from "@/components/LocalizedText";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -26,14 +26,7 @@ interface RecapFormData {
 export default function EventRecap() {
   const { locale, translateText: translateUiText } = useTranslation();
   const [form] = Form.useForm();
-  const [event, setEvent] = useState<{
-    ID: string;
-    title: string;
-    description: string;
-    cover_img: string;
-    start_time: string;
-    participants: number;
-  } | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
   const { id } = router.query;

@@ -5,8 +5,8 @@ import { signIn } from "next-auth/react";
 import styles from "./index.module.css";
 import { useRouter } from "next/router";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { registerUser } from "../api/login";
-// import { sendVerificationCode, verifyCode } from '../api/verification'
+import { registerUser } from "@/services/login";
+// import { sendVerificationCode, verifyCode } from '@/services/verification'
 import GitHubLoginButton from "@/components/GitHubLoginButton";
 import AuthManager from "@/lib/authManager";
 import { useAuth } from "@/contexts/AuthContext";

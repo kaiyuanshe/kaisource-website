@@ -37,7 +37,7 @@ const Auth: React.FC = () => {
 
         // 使用 AuthManager 确保只有一个登录请求在执行
         const res = await authManager.ensureLogin(async () => {
-          return await signIn("credentials", {
+          return await signIn("code-login", {
             redirect: false,
             code: code as string,
           });

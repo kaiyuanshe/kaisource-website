@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Tag } from "antd";
 import styles from "./Article.module.css";
 import { useTranslation } from "../../../hooks/useTranslation";
-import type { Article } from "@/pages/api/article";
+import type { Article } from "@/services/article";
 import AsyncContentState from "@/components/base/AsyncContentState";
 import ContentCardSkeleton from "@/components/base/ContentCardSkeleton";
 import type { AsyncStatus } from "@/types/async";

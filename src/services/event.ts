@@ -5,7 +5,8 @@ export interface CreateEventParams {
   title: string;
   description: string;
   event_mode: "线上活动" | "线下活动";
-  event_type: "meetup" | "ama" | "hackathon" | "workshop";
+  // The shared Go API accepts a string; the website uses community/coscon.
+  event_type: string;
   location: string;
   link: string;
   start_time: string;
@@ -27,7 +28,7 @@ export interface UpdateEventParams {
   title: string;
   description: string;
   event_mode: "线上活动" | "线下活动";
-  event_type: "meetup" | "ama" | "hackathon" | "workshop";
+  event_type: string;
   location: string;
   link: string;
   start_time: string;
@@ -487,33 +488,7 @@ export const deleteEvent = async (eventId: number): Promise<EventResult> => {
 };
 
 // 工具函数：格式化日期时间
-export const formatDateTime = (date: unknown, time: unknown): string => {
-  try {
-    if (!date || !time) return "";
-
-    if (
-      typeof date?.format === "function" &&
-      typeof time?.format === "function"
-    ) {
-      return `${date.format("YYYY-MM-DD")} ${time.format("HH:mm:ss")}`;
-    }
-
-    if (date instanceof Date && time instanceof Date) {
-      const dateStr = date.toISOString().split("T")[0];
-      const timeStr = time.toTimeString().split(" ")[0];
-      return `${dateStr} ${timeStr}`;
-    }
-
-    if (typeof date === "string" && typeof time === "string") {
-      return `${date} ${time}`;
-    }
-
-    return "";
-  } catch (error) {
-    console.error("格式化日期时间失败:", error);
-    return "";
-  }
-};
+export { formatDateTime } from "@/lib/date-time.mjs";
 
 // venue
 export interface Session {

@@ -1,6 +1,6 @@
 import { Tooltip } from 'antd';
 import Image from 'next/image';
-import {Dapp} from "@/pages/api/dapp";
+import {Dapp} from "@/services/dapp";
 
 interface DAppOptionProps {
   dapp: Dapp;

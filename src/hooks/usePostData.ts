@@ -9,7 +9,7 @@ import {
   unlikePost,
   favoritePost,
   unFavoritePost,
-} from '@/pages/api/post';
+} from '@/services/post';
 import {
   PostType,
   PostsStats,

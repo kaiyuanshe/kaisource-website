@@ -5,7 +5,7 @@ import { ArrowLeft, Calendar, Edit, Eye, User } from "lucide-react";
 import Link from "next/link";
 import styles from "./index.module.css";
 import { useAuth } from "@/contexts/AuthContext";
-import { getArticleById } from "@/pages/api/article";
+import { getArticleById } from "@/services/article";
 import dayjs from "dayjs";
 import { sanitizeMarkdown } from "@/lib/markdown";
 import CommentSection from "@/components/comments/CommentSection";

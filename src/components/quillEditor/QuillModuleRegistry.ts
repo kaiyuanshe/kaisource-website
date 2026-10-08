@@ -1,3 +1,5 @@
+import type QuillType from 'quill';
+
 // Quill 模块注册管理器 - 避免重复注册和循环引用
 class QuillModuleRegistry {
   private static instance: QuillModuleRegistry;
@@ -47,7 +49,7 @@ class QuillModuleRegistry {
 
       // 动态导入 React Quill
       const ReactQuillModule = await import('react-quill-new');
-      const Quill = ReactQuillModule.default?.Quill || (window as unknown as { Quill?: unknown }).Quill;
+      const Quill = ReactQuillModule.default?.Quill || (window as Window & { Quill?: typeof QuillType }).Quill;
 
       if (!Quill) {
         console.warn('Quill not found');

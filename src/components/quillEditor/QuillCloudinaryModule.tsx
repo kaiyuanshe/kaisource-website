@@ -1,13 +1,18 @@
 'use client';
 import { uploadImgToCloud } from '@/lib/cloudinary';
+import type Quill from 'quill';
+
+interface CloudinaryModuleOptions {
+  onError?: (error: string) => void;
+}
 
 // Quill Cloudinary 图片上传模块
 export class QuillCloudinaryModule {
-  quill: unknown;
-  options: Record<string, unknown>;
+  quill: Quill;
+  options: CloudinaryModuleOptions;
   onError: (error: string) => void;
 
-  constructor(quill: unknown, options: Record<string, unknown> = {}) {
+  constructor(quill: Quill, options: CloudinaryModuleOptions = {}) {
     this.quill = quill;
     this.options = options;
     this.onError = options.onError || ((error: string) => console.error(error));
@@ -22,7 +27,7 @@ export class QuillCloudinaryModule {
   // 绑定工具栏图片按钮
   bindToolbarImageButton() {
     const toolbar = this.quill.getModule('toolbar');
-    if (toolbar) {
+    if (toolbar && typeof toolbar === 'object' && 'addHandler' in toolbar && typeof toolbar.addHandler === 'function') {
       // 重写图片按钮处理器
       toolbar.addHandler('image', () => {
         this.selectLocalImage();

@@ -10,7 +10,7 @@ import {
   deleteSession,
   getSessionsByEvent,
   updateSession,
-} from "@/pages/api/event";
+} from "@/services/event";
 import { useRouter } from "next/router";
 import AvatarUpload from "@/components/avatarUpload/AvatarUpload";
 import LocalizedText from "@/components/LocalizedText";

@@ -19,6 +19,7 @@ export interface PersonCardProps {
   email?: string;
   blog?: string;
   details?: string[];
+  bio?: string;
   onDetailClick?: () => void;
   role?: "leader" | "member" | "secretary" | "treasurer";
   tags?: string[];

@@ -135,6 +135,9 @@ JSX gates for every article category, including both grid/list controls, but
 is not browser editing acceptance. Isolated API integration also verifies
 independent create/edit, review, and delete permissions, including rejection of
 anonymous and event-only actors. API draft visibility remains a separate
-release gate; client-side filters are not authorization. Full TypeScript
-checking, actual Vercel backend connectivity, provider credentials and final
+release gate; client-side filters are not authorization. Project TypeScript
+checking is now zero-error, and production builds no longer skip it. Request
+helpers were moved out of `pages/api` to `src/services` instead of inventing
+dummy handler exports. Runtime/provider and browser acceptance remain separate
+gates. Actual Vercel backend connectivity, provider credentials and final
 desktop/mobile production acceptance remain release gates.

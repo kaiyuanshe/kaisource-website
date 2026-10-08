@@ -14,7 +14,7 @@ import {
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/router";
 import styles from "./index.module.css";
-import { getCommunities, Community, deleteCommunity } from "../api/comunity";
+import { getCommunities, Community, deleteCommunity } from "@/services/comunity";
 import { useAuth } from "@/contexts/AuthContext";
 import LocalizedText from "@/components/LocalizedText";
 import { useTranslation } from "@/hooks/useTranslation";

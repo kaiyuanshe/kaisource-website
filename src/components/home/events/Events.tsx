@@ -3,7 +3,7 @@ import Link from "next/link";
 import styles from "./Events.module.css";
 import { Tag } from "antd";
 import { useTranslation } from "../../../hooks/useTranslation";
-import type { Event } from "@/pages/api/event";
+import type { Event } from "@/services/event";
 import AsyncContentState from "@/components/base/AsyncContentState";
 import ContentCardSkeleton from "@/components/base/ContentCardSkeleton";
 import type { AsyncStatus } from "@/types/async";

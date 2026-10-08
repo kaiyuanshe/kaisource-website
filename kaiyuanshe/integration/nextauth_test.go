@@ -139,6 +139,18 @@ func testNextAuthRuntime(t *testing.T, connection *gorm.DB) {
 			t.Fatal("captcha route accepted a non-POST request")
 		}
 	}
+	// Request helpers belong to services, not published Next API endpoints.
+	// Check the compiled routes over HTTPS instead of relying only on source scans.
+	for _, utility := range []string{"api", "article", "comment", "comunity", "dapp", "event", "feedback", "login", "member", "post", "recap", "tutorial", "user", "verification"} {
+		response, err := routeClient.Get(frontend.URL + "/api/" + utility)
+		if err != nil {
+			t.Fatal("request utility route probe failed")
+		}
+		response.Body.Close()
+		if response.StatusCode != http.StatusNotFound {
+			t.Fatalf("request utility /api/%s became a public route: %d", utility, response.StatusCode)
+		}
+	}
 	getJSON := func(client *http.Client, path string, target interface{}) {
 		response, err := client.Get(frontend.URL + path)
 		if err != nil {

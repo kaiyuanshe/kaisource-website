@@ -27,8 +27,8 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/router";
 import styles from "./new.module.css";
-import { createEvent } from "../api/event";
-import UploadCardImg from "@/components/uploadCardImg/UploadCardImg";
+import { createEvent, type CreateEventParams } from "@/services/event";
+import UploadCardImg, { type CoverImage } from "@/components/uploadCardImg/UploadCardImg";
 import ContentLocaleFields from "@/components/ContentLocaleFields";
 import dynamic from "next/dynamic";
 
@@ -64,9 +64,7 @@ export default function NewEventPage() {
 
   // 封面图片
   const [previewUrl, setPreviewUrl] = useState<string>("");
-  const [cloudinaryImg, setCloudinaryImg] = useState<
-    { secure_url: string } | undefined
-  >();
+  const [cloudinaryImg, setCloudinaryImg] = useState<CoverImage | null>(null);
 
   // 初始化时获取 URL 参数
   useEffect(() => {
@@ -124,7 +122,7 @@ export default function NewEventPage() {
     eventSetting: number;
     title: string;
     description: string;
-    eventMode: string;
+    eventMode: CreateEventParams["event_mode"];
     eventType: string;
     location: string;
     startDate: { format: (format: string) => string };
