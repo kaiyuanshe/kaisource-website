@@ -20,3 +20,9 @@ test('additive proxy namespace preserves paths and never exposes internal cron',
   assert.match(nginx, /proxy_set_header X-Forwarded-For \$remote_addr/);
   assert.match(nginx, /Cache-Control "no-store" always/);
 });
+test('operator timer only prunes authentication state and never collects statistics', () => {
+  const unit = read('deploy/overseas-api/kaisource-auth-cleanup.service.example');
+  assert.match(unit, /ExecStart=.* -mode cleanup/);
+  assert.doesNotMatch(unit, /-mode (?:stats|seed|migrate)/);
+  assert.match(read('deploy/overseas-api/kaisource-auth-cleanup.timer.example'), /Unit=kaisource-auth-cleanup.service/);
+});

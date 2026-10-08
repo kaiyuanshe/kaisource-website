@@ -53,10 +53,11 @@ Keyrail Vercel credential. The successful production deployment is:
 - The Vercel build completed TypeScript validation and generated all 189 static
   pages. The deployed HTML identifies this deployment directly.
 
-The deployment was performed from a temporary source copy without the local Git
-metadata. This avoided Vercel's OpenBuild commit-author deployment block while
-preserving the exact pushed source commit (`711c62f`). No domain transfer or
-DNS bypass was used.
+Historical note: that deployment used a temporary source copy without local
+Git metadata after a commit-author permission block. Do not repeat this as a
+workaround: an accepted artifact does not establish commit-author permission.
+Future source deployments must satisfy OpenBuild team/author authorization;
+configuration-only redeploys must be explicitly permitted by Keyrail.
 
 Post-deployment checks on October 8, 2026:
 
@@ -66,7 +67,7 @@ Post-deployment checks on October 8, 2026:
   configured NextAuth secret is being loaded.
 - The domestic site `kaiyuanshe.cn` was not changed.
 
-One production blocker remains: the Vercel captcha compatibility route redirects
+At that checkpoint the confirmed production blocker was: the Vercel captcha compatibility route redirects
 to `/v1/captcha/generate`, but the unchanged domestic backend still returns
 404 for that endpoint. Therefore registration, captcha verification and
 authenticated writes are not yet accepted as fully ready. Keep the domestic
@@ -97,3 +98,60 @@ values in tool output. Do not repeat payload tracing or copy secrets into this
 document. Coordinate credential rotation via the approved secret store before
 final cutover; API signing-key rotation can invalidate existing sessions and
 must not be done silently.
+
+## Parallel overseas API checkpoint (late October 8, 2026)
+
+- Backend revision `53e59ec`, Linux amd64 SHA-256
+  `d3a820011f590db1e17600998de1c351793736bf220a2321fd3ec928adc8792d`.
+- New `kaisource-api.service` is active and listens only on `127.0.0.1:8081`.
+- `/home/azureuser/kaisource-api/current` points to `releases/53e59ec`.
+- New HTTPS namespace `https://kaiyuanshe.cn/kaisource-api/v1` is available.
+  Only an additive Nginx include was inserted into the existing HTTPS server;
+  domestic `/v1`, `/api` and `/` routes were not changed. Saved Nginx rollback:
+  `/etc/nginx/sites-available/kaiyuanshe.cn.pre-overseas-api-20261008T1515Z`.
+- `kaiyuanshe.service` remains PID 485462 with the original binary hash above;
+  domestic Next/PM2 was not replaced. PostgreSQL remains localhost-only.
+- A new server-local backup
+  `/var/backups/kaiyuanshe/kys-before-overseas-sidecar-20261008T1507Z.dump`
+  SHA-256 `612468c6a7618aa0371e1ace8ce32336555b680f5ae6b8696654e3c128ffc1e7`
+  was restored in an isolated Unix-socket-only cluster: 52 users, 19 articles,
+  29 events. These counts were unchanged after smoke tests. The cluster stopped.
+- The operator-owned `kaisource-auth-cleanup.timer` runs only expired auth-state
+  pruning; a manual run succeeded. It does not run stats. Sidecar scheduler and
+  Vercel cron remain disabled, preserving the existing statistics owner.
+- Seven non-destructive public HTTPS API checks passed: published-only article
+  reads in all three locales (even with forced draft filters), event reads,
+  no-store PNG captcha with no answer disclosure, wrong-answer/replay rejection,
+  registration without proof rejection, anonymous write rejection, invalid
+  bearer rejection. No test account, mail or article/event was created.
+- Domestic homepage/login/session/old SVG captcha were rechecked and returned
+  200. The old API binary and process were unchanged.
+- Full isolated PostgreSQL registration, captured-mail activation, login,
+  NextAuth secured session and article writes passed. Go unit/race checks and
+  frontend type/build checks passed. These are not real-provider acceptance.
+- Vercel **stored** production variables now point to the sidecar namespace:
+  `API_PROXY_ORIGIN=https://kaiyuanshe.cn/kaisource-api` and
+  `INTERNAL_API_URL=https://kaiyuanshe.cn/kaisource-api/v1`. The active deployment
+  has not yet adopted them; its captcha still follows the old route and returns
+  404. The exact configuration-only redeploy command was denied by Keyrail.
+  Do not self-allow, strip Git metadata, or alter access controls to bypass it.
+- Browser checks confirmed real public content and same-origin EN→zh-CN switch.
+  A 390px registration form had no horizontal overflow; it still shows captcha
+  unavailable before redeploy. Actual successful mobile registration is pending.
+
+### Remaining external acceptance gates
+
+1. Explicitly approve the narrow Keyrail configuration-only redeploy command,
+   or provide legitimate OpenBuild commit-author deployment permission for the
+   newer frontend fixes. Existing key access alone does not prove author access.
+2. SMTP TLS connection works, but authentication failed using the actual Go
+   mail protocol (no email sent). Supply/approve a working sender credential or
+   provider policy, without silently changing domestic credentials.
+3. This Vercel project lacks OAuth/Cloudinary environment configuration. Set
+   approved provider URL, Cloudinary cloud/key/server-only secret and upload root
+   through the secret store; never use `NEXT_PUBLIC_CLOUDINARY_API_SECRET`.
+4. Test real mail delivery/activation, provider callbacks and authenticated
+   upload/editing with an approved test account. No production user may be
+   given extra permissions merely to obtain a test actor.
+5. Only after overseas acceptance and a stable observation period consider the
+   separate domestic cutover. The domestic old deployment must remain running.

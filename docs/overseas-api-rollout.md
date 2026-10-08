@@ -16,8 +16,9 @@ existing local authoritative database. No public PostgreSQL listener is needed.
 - The sidecar reuses the existing server-local YAML file. Do not download, print
   or commit its secrets. Email activation links return to the overseas `/login`.
 - Both scheduler and Vercel cron are disabled in the sidecar. Existing scheduler
-  ownership is unchanged. Use its explicit `-mode cleanup` in an operator-owned
-  maintenance schedule only after separately verifying ownership.
+  ownership is unchanged. The dedicated
+  `kaisource-auth-cleanup.timer` runs only `-mode cleanup` once per hour, not
+  statistics. It is the one auth-state cleanup owner; Vercel cron remains off.
 - Never restore production directly to test backups: use a separate local
   Unix-socket-only PostgreSQL cluster.
 
@@ -52,3 +53,7 @@ saved Nginx file (validate then graceful reload), stop only
 The later domestic cutover is a separate acceptance step after the overseas
 version is proven; use the same source, domestic default locale and existing
 account/data semantics. Do not run the legacy `deploy.sh`.
+
+## Read-only live smoke suite
+
+Run `KAISOURCE_SMOKE_API=https://kaiyuanshe.cn/kaisource-api/v1 node scripts/test-overseas-api.mjs`. It does not solve CAPTCHAs, create accounts/content, send email or change roles. It rejects wrong answers and registration without a proof. Successful authenticated production acceptance still requires an approved test actor.

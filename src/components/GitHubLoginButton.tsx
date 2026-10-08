@@ -3,6 +3,7 @@ import { Button } from "antd";
 import { FaGithub } from "react-icons/fa";
 import { useRouter } from "next/router";
 import LocalizedText from "@/components/LocalizedText";
+import { configuredOAuthUrl, oauthLoginUrl } from "@/lib/oauth-url.mjs";
 
 interface GitHubLoginButtonProps {
   loading?: boolean;
@@ -16,11 +17,12 @@ const GitHubLoginButton: React.FC<GitHubLoginButtonProps> = ({
 }) => {
   const router = useRouter();
 
+  const providerReady = Boolean(configuredOAuthUrl(process.env.NEXT_PUBLIC_OAUTH));
   const handleGitHubSignIn = () => {
+    const oauthUrl = oauthLoginUrl(process.env.NEXT_PUBLIC_OAUTH, window.location.origin, window.location.pathname);
+    if (!oauthUrl) return;
     onLoading?.(true);
-    const currentUrl = window.location.origin + router.pathname;
-    const oauthUrl = `${process.env.NEXT_PUBLIC_OAUTH}&redirect_uri=${currentUrl}&scope=read:user user:email`;
-    router.push(oauthUrl); // 跳转 OAuth 授权页
+    router.push(oauthUrl);
   };
 
   return (
@@ -28,6 +30,7 @@ const GitHubLoginButton: React.FC<GitHubLoginButtonProps> = ({
       type="default"
       icon={<FaGithub size={18} />}
       onClick={handleGitHubSignIn}
+      disabled={!providerReady}
       loading={loading}
       className={className}
       style={{

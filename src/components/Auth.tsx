@@ -72,10 +72,8 @@ const Auth: React.FC = () => {
   }, [code, session, router, message]);
 
   const handleSignIn = () => {
-    setLoading(true); // 点击按钮时设置为加载状态
-    const currentUrl = window.location.origin + router.pathname;
-    const oauthUrl = `${process.env.NEXT_PUBLIC_OAUTH}&redirect_uri=${currentUrl}`;
-    router.push(oauthUrl); // 跳转 OAuth 授权页
+    // Email login is local to this deployment; it is not an OAuth redirect.
+    router.push("/login");
   };
 
   const handleLogout = async () => {
