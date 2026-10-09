@@ -10,6 +10,7 @@ test('parallel backend binds loopback and cannot run a second scheduler or migra
   assert.match(unit, /KAISOURCE_CRON_ENABLED=false/);
   assert.doesNotMatch(unit, /ExecStart=.*-mode (?:migrate|seed)/);
   assert.match(unit, /KAISOURCE_EMAIL_REDIRECTURL=https:\/\/www\.kaisource\.org\/login/);
+  assert.match(unit, /KAISOURCE_OAUTH_REDIRECEURL=https:\/\/www\.kaisource\.org\/login/);
 });
 test('additive proxy namespace preserves paths and never exposes internal cron', () => {
   const nginx = read('deploy/overseas-api/nginx-location.conf.example');

@@ -12,9 +12,11 @@ export function oauthLoginUrl(provider, origin, pathname) {
   if (!url) return null;
   try {
     const site = new URL(origin);
-    const callback = new URL(pathname, site.origin);
-    if (callback.origin !== site.origin) return null;
-    callback.search = ''; callback.hash = '';
+    const requested = new URL(pathname, site.origin);
+    if (requested.origin !== site.origin) return null;
+    // The provider and authoritative Go token exchange share one exact
+    // registered callback. Do not use arbitrary content or localized paths.
+    const callback = new URL('/login', site.origin);
     url.searchParams.set('redirect_uri', callback.href);
     url.searchParams.set('scope', 'read:user user:email');
     return url.href;

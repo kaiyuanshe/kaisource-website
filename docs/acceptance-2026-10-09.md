@@ -1,6 +1,8 @@
 # Acceptance checkpoint — October 9, 2026 (Asia/Shanghai)
 
-**Overall: not complete.** The overseas API switch is now complete, but real
+**Latest follow-up:** see `azure-provider-recovery-2026-10-09.md`: Azure provider credentials were located and staged; the exact overseas OAuth callback was added; source author authorization and SMTP 535 remain unresolved. The domestic historical PID/hash below is no longer current.
+
+**Overall at this checkpoint: not complete.** The overseas API switch is now complete, but real
 provider acceptance and the newer source deployment remain gated. This supersedes
 the pending-switch status in `acceptance-2026-10-08.md`, not its historical facts.
 
