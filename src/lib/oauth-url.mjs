@@ -7,9 +7,9 @@ export function configuredOAuthUrl(value) {
     return url;
   } catch { return null; }
 }
-export function oauthLoginUrl(provider, origin, pathname) {
+export function oauthLoginUrl(provider, origin, pathname, state) {
   const url = configuredOAuthUrl(provider);
-  if (!url) return null;
+  if (!url || typeof state !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(state)) return null;
   try {
     const site = new URL(origin);
     const requested = new URL(pathname, site.origin);
@@ -19,6 +19,7 @@ export function oauthLoginUrl(provider, origin, pathname) {
     const callback = new URL('/login', site.origin);
     url.searchParams.set('redirect_uri', callback.href);
     url.searchParams.set('scope', 'read:user user:email');
+    url.searchParams.set('state', state);
     return url.href;
   } catch { return null; }
 }

@@ -1,5 +1,7 @@
 # Acceptance checkpoint — October 9, 2026 (Asia/Shanghai)
 
+**Continuation:** see `continuation-2026-10-09.md` for the corrected non-Git deployment premise, fresh author-gate/alias inspection, and local OAuth browser-state protection. This does not claim a new production deployment.
+
 **Latest follow-up:** see `azure-provider-recovery-2026-10-09.md`: Azure provider credentials were located and staged; the exact overseas OAuth callback was added; source author authorization and SMTP 535 remain unresolved. The domestic historical PID/hash below is no longer current.
 
 **Overall at this checkpoint: not complete.** The overseas API switch is now complete, but real

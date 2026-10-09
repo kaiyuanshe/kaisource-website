@@ -1,5 +1,7 @@
 # Azure provider recovery and source-deployment gate — October 9, 2026
 
+**Continuation:** see `continuation-2026-10-09.md` for the corrected non-Git deployment premise, fresh author-gate/alias inspection, and local OAuth browser-state protection. This does not claim a new production deployment.
+
 This follow-up supersedes the provider-not-found state of the earlier acceptance
 checkpoint. It does **not** claim successful latest-source deployment or real
 provider login, email delivery or upload acceptance.

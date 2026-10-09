@@ -1,9 +1,9 @@
 import React from "react";
-import { Button } from "antd";
+import { Button, App as AntdApp } from "antd";
 import { FaGithub } from "react-icons/fa";
-import { useRouter } from "next/router";
 import LocalizedText from "@/components/LocalizedText";
-import { configuredOAuthUrl, oauthLoginUrl } from "@/lib/oauth-url.mjs";
+import { useTranslation } from "@/hooks/useTranslation";
+import { configuredOAuthUrl } from "@/lib/oauth-url.mjs";
 
 interface GitHubLoginButtonProps {
   loading?: boolean;
@@ -15,14 +15,28 @@ const GitHubLoginButton: React.FC<GitHubLoginButtonProps> = ({
   onLoading,
   className,
 }) => {
-  const router = useRouter();
-
+  const { message } = AntdApp.useApp();
+  const { translateText } = useTranslation();
   const providerReady = Boolean(configuredOAuthUrl(process.env.NEXT_PUBLIC_OAUTH));
-  const handleGitHubSignIn = () => {
-    const oauthUrl = oauthLoginUrl(process.env.NEXT_PUBLIC_OAUTH, window.location.origin, window.location.pathname);
-    if (!oauthUrl) return;
+  const handleGitHubSignIn = async () => {
     onLoading?.(true);
-    router.push(oauthUrl);
+    try {
+      const response = await fetch('/api/oauth/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: '{}',
+      });
+      if (!response.ok) throw new Error("OAuth start unavailable");
+      const { url } = await response.json();
+      if (!configuredOAuthUrl(url)) throw new Error("Invalid OAuth navigation");
+      window.location.assign(url);
+    } catch {
+      // Fail closed; provider/config details must not reach the user or logs.
+      message.error(translateText("登录失败..."));
+    } finally {
+      onLoading?.(false);
+    }
   };
 
   return (

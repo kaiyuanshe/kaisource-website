@@ -45,7 +45,7 @@ const LoginPage: React.FC = () => {
   // 使用简化的认证上下文，利用 NextAuth 内置缓存机制
   const { session } = useAuth();
   const router = useRouter();
-  const { code, uid, token } = router.query;
+  const { code, state, uid, token } = router.query;
   const hasTriedLogin = useRef(false); // 防止重复登录
 
   const { set, get } = useLocalStorage("user");
@@ -85,6 +85,7 @@ const LoginPage: React.FC = () => {
             return await signIn("code-login", {
               redirect: false,
               code: code as string,
+              state: state as string,
             });
           });
         }
@@ -124,7 +125,7 @@ const LoginPage: React.FC = () => {
     return () => {
       clearTimeout(timer);
     };
-  }, [code, uid, token, session, router, message]);
+  }, [code, state, uid, token, session, router, message]);
 
   const onLoginFinish = async (values: LoginFieldType) => {
     try {

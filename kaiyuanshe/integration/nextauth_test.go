@@ -17,10 +17,12 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/spf13/viper"
 	"gorm.io/gorm"
 	"kaiyuanshe/models"
 	"kaiyuanshe/routes"
@@ -59,6 +61,51 @@ func testNextAuthRuntime(t *testing.T, connection *gorm.DB) {
 	upstream, _ := url.Parse("http://127.0.0.1:" + strconv.Itoa(port))
 	frontend := httptest.NewTLSServer(httputil.NewSingleHostReverseProxy(upstream))
 	t.Cleanup(frontend.Close)
+	// A local provider fixture exercises the browser binding and shared Go
+	// identity mapping without contacting GitHub or using a real account.
+	var writerFixture models.User
+	if err := connection.First(&writerFixture, "email = ?", "writer@example.test").Error; err != nil {
+		t.Fatal("missing isolated writer fixture")
+	}
+	oauthUser := models.User{Uid: 99110027, Email: "oauth@example.test", Username: "oauth-fixture", IsVerified: true, RoleID: writerFixture.RoleID}
+	if err := connection.Create(&oauthUser).Error; err != nil {
+		t.Fatal("could not create isolated OAuth fixture")
+	}
+	var exchanges atomic.Int64
+	provider := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		switch r.URL.Path {
+		case "/token":
+			var body struct {
+				Code        string `json:"code"`
+				ClientID    string `json:"client_id"`
+				RedirectURI string `json:"redirect_uri"`
+			}
+			if json.NewDecoder(r.Body).Decode(&body) != nil || body.Code != "isolated-provider-code" || body.ClientID != "fixture-oauth-client" || body.RedirectURI != frontend.URL+"/login" || exchanges.Add(1) != 1 {
+				w.WriteHeader(http.StatusBadRequest)
+				io.WriteString(w, `{"error":"invalid_grant"}`)
+				return
+			}
+			io.WriteString(w, `{"access_token":"isolated-provider-access-token"}`)
+		case "/user":
+			if r.Header.Get("Authorization") != "Bearer isolated-provider-access-token" {
+				w.WriteHeader(http.StatusUnauthorized)
+				return
+			}
+			io.WriteString(w, `{"id":99110027,"login":"oauth-fixture","email":"oauth@example.test","name":"OAuth Fixture","avatar_url":"https://example.test/avatar.png"}`)
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}))
+	t.Cleanup(provider.Close)
+	for key, value := range map[string]string{
+		"oauth.clientId": "fixture-oauth-client", "oauth.clientSecret": "isolated-fixture-secret",
+		"oauth.accessApi": provider.URL + "/token", "oauth.getUser": provider.URL + "/user", "oauth.redireceUrl": frontend.URL + "/login",
+	} {
+		previous := viper.Get(key)
+		viper.Set(key, value)
+		t.Cleanup(func() { viper.Set(key, previous) })
+	}
 	secret := make([]byte, 32)
 	if _, err := rand.Read(secret); err != nil {
 		t.Fatal(err)
@@ -72,6 +119,7 @@ func testNextAuthRuntime(t *testing.T, connection *gorm.DB) {
 		"NEXTAUTH_SECRET=" + hex.EncodeToString(secret), "NEXTAUTH_URL=" + frontend.URL,
 		"INTERNAL_API_URL=" + backend.URL + "/v1", "SITE_DEFAULT_LOCALE=en", "SITE_PREVIEW_MODE=false",
 		"GITHUB_CLIENT_ID=", "GITHUB_CLIENT_SECRET=", "CLOUDINARY_API_SECRET=",
+		"NEXT_PUBLIC_OAUTH=https://provider.example.test/authorize?client_id=fixture-oauth-client",
 		"CLOUDINARY_API_KEY=", "CLOUDINARY_CLOUD_NAME=", "NEXT_PUBLIC_CLOUDINARY_API_KEY=", "NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=",
 	}
 	command.Stdout, command.Stderr = io.Discard, io.Discard
@@ -209,6 +257,127 @@ func testNextAuthRuntime(t *testing.T, connection *gorm.DB) {
 			Permissions []string `json:"permissions"`
 		} `json:"user"`
 	}
+	t.Run("OAuth browser state and shared identity", func(t *testing.T) {
+		start := func(client *http.Client, origin, contentType string, want int) string {
+			request, _ := http.NewRequest(http.MethodPost, frontend.URL+"/api/oauth/start", strings.NewReader(`{}`))
+			request.Header.Set("Origin", origin)
+			request.Header.Set("Content-Type", contentType)
+			response, err := client.Do(request)
+			if err != nil {
+				t.Fatal("OAuth start unavailable")
+			}
+			defer response.Body.Close()
+			if response.StatusCode != want || response.Header.Get("Cache-Control") != "no-store" {
+				t.Fatalf("unexpected OAuth start status: %d", response.StatusCode)
+			}
+			if want != 200 {
+				return ""
+			}
+			var body struct {
+				URL string `json:"url"`
+			}
+			if json.NewDecoder(response.Body).Decode(&body) != nil {
+				t.Fatal("invalid OAuth start JSON")
+			}
+			location, err := url.Parse(body.URL)
+			if err != nil || location.Query().Get("redirect_uri") != frontend.URL+"/login" || location.Query().Get("client_id") != "fixture-oauth-client" {
+				t.Fatal("OAuth callback or provider changed")
+			}
+			state := location.Query().Get("state")
+			protected := false
+			for _, cookie := range response.Cookies() {
+				if cookie.Name == "__Host-kaisource.oauth-state" {
+					protected = cookie.Secure && cookie.HttpOnly && cookie.Path == "/" && cookie.Domain == "" && cookie.SameSite == http.SameSiteLaxMode && cookie.MaxAge == 600
+				}
+			}
+			if len(state) != 43 || !protected {
+				t.Fatal("OAuth state lacks browser cookie protection")
+			}
+			return state
+		}
+		client := newClient()
+		response, err := client.Get(frontend.URL + "/api/oauth/start")
+		if err != nil {
+			t.Fatal("OAuth method check unavailable")
+		}
+		response.Body.Close()
+		if response.StatusCode != 405 || response.Header.Get("Allow") != "POST" {
+			t.Fatal("OAuth start permits GET")
+		}
+		start(client, "https://attacker.example.test", "application/json", 403)
+		start(client, "", "application/json", 403)
+		start(client, frontend.URL, "text/plain", 403)
+		state := start(client, frontend.URL, "application/json", 200)
+		other := newClient()
+		start(other, frontend.URL, "application/json", 200)
+		for _, attempt := range []struct {
+			client *http.Client
+			state  string
+		}{{newClient(), state}, {other, state}, {client, "wrong-state"}} {
+			redirect := signIn(attempt.client, "code-login", url.Values{"code": {"isolated-provider-code"}, "state": {attempt.state}})
+			if !strings.Contains(redirect, "error=CredentialsSignin") {
+				t.Fatal("unbound OAuth code established a session")
+			}
+			var session sessionData
+			getJSON(attempt.client, "/api/auth/session", &session)
+			if session.User != nil {
+				t.Fatal("invalid OAuth state gained a user")
+			}
+		}
+		if exchanges.Load() != 0 {
+			t.Fatal("invalid state reached provider exchange")
+		}
+		// Native NextAuth CSRF remains mandatory even with a valid OAuth state.
+		state = start(client, frontend.URL, "application/json", 200)
+		form := url.Values{"code": {"isolated-provider-code"}, "state": {state}, "csrfToken": {"wrong-csrf"}, "json": {"true"}, "callbackUrl": {frontend.URL + "/"}}
+		request, _ := http.NewRequest(http.MethodPost, frontend.URL+"/api/auth/callback/code-login", strings.NewReader(form.Encode()))
+		request.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		request.Header.Set("Origin", frontend.URL)
+		csrfResponse, err := client.Do(request)
+		if err != nil {
+			t.Fatal("CSRF rejection probe failed")
+		}
+		var csrfResult struct {
+			URL string `json:"url"`
+		}
+		decodeErr := json.NewDecoder(csrfResponse.Body).Decode(&csrfResult)
+		csrfResponse.Body.Close()
+		if decodeErr != nil || !strings.Contains(csrfResult.URL, "csrf=true") || exchanges.Load() != 0 {
+			t.Fatal("OAuth state bypassed native NextAuth CSRF")
+		}
+		redirect := signIn(client, "code-login", url.Values{"code": {"isolated-provider-code"}, "state": {state}})
+		if strings.Contains(redirect, "error=") {
+			t.Fatal("bound OAuth fixture login failed")
+		}
+		var session sessionData
+		getJSON(client, "/api/auth/session", &session)
+		if session.User == nil || session.User.UID != strconv.Itoa(int(oauthUser.ID)) || session.User.Token == "" {
+			t.Fatal("OAuth identity is not the shared API account")
+		}
+		canWrite := false
+		for _, permission := range session.User.Permissions {
+			if permission == "article:write" {
+				canWrite = true
+			}
+		}
+		if !canWrite {
+			t.Fatal("OAuth session lost authoritative role permissions")
+		}
+		parsed, err := utils.ParseToken(session.User.Token)
+		if err != nil || parsed.Uid != oauthUser.ID {
+			t.Fatal("OAuth session API token mismatch")
+		}
+		location, _ := url.Parse(frontend.URL)
+		for _, cookie := range client.Jar.Cookies(location) {
+			if cookie.Name == "__Host-kaisource.oauth-state" {
+				t.Fatal("OAuth state cookie was not consumed")
+			}
+		}
+		redirect = signIn(client, "code-login", url.Values{"code": {"isolated-provider-code"}, "state": {state}})
+		if !strings.Contains(redirect, "error=CredentialsSignin") || exchanges.Load() != 1 {
+			t.Fatal("OAuth state replay reached provider exchange")
+		}
+	})
 	client := newClient()
 	var anonymous sessionData
 	getJSON(client, "/api/auth/session", &anonymous)

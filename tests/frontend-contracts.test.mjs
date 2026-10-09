@@ -68,7 +68,8 @@ test('unknown, missing, mixed or invalid date inputs are rejected without except
   }
 });
 
-test('header code login uses the existing shared backend provider', () => {
-  assert.match(source('src/components/Auth.tsx'), /signIn\(['"]code-login['"]/);
+test('only the login page consumes the shared backend OAuth callback', () => {
+  assert.match(source('src/pages/login/index.tsx'), /signIn\(['"]code-login['"]/);
+  assert.doesNotMatch(source('src/components/Auth.tsx'), /signIn\(/);
   assert.doesNotMatch(source('src/components/Auth.tsx'), /signIn\(['"]credentials['"]/);
 });
