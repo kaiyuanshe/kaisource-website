@@ -14,10 +14,6 @@ const CLOUDINARY_IMAGE_EXTENSIONS = new Set([
 ]);
 const DEFAULT_CLOUDINARY_STATIC_FOLDER = "kyswebsite/static";
 const isPreview = process.env.SITE_PREVIEW_MODE === "true";
-const apiProxyOrigin = (process.env.API_PROXY_ORIGIN || "").replace(/\/+$/, "");
-const liveApiDestination = apiProxyOrigin
-  ? `${apiProxyOrigin}/v1/:path*`
-  : undefined;
 
 async function findStaticImages(directory: string): Promise<string[]> {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -104,8 +100,8 @@ const nextConfig: NextConfig = {
     if (isPreview) {
       return [{ source: "/v1/:path*", destination: "/api/preview/:path*" }];
     }
-    return liveApiDestination
-      ? [{ source: "/v1/:path*", destination: liveApiDestination }]
+    return process.env.API_PROXY_ORIGIN
+      ? [{ source: "/v1/:path*", destination: "/api/upstream/:path*" }]
       : [];
   },
   images: {

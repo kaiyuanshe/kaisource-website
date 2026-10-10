@@ -88,7 +88,8 @@ func testNextAuthRuntime(t *testing.T, connection *gorm.DB) {
 			}
 			io.WriteString(w, `{"access_token":"isolated-provider-access-token"}`)
 		case "/user":
-			if r.Header.Get("Authorization") != "Bearer isolated-provider-access-token" {
+			body, _ := io.ReadAll(r.Body)
+			if r.Method != http.MethodGet || len(body) != 0 || r.Header.Get("Authorization") != "Bearer isolated-provider-access-token" {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}

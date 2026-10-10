@@ -58,7 +58,8 @@ export const loginUser = async (params: LoginParams): Promise<LoginResult> => {
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(35000),
     })
 
     const data = await response.json()
@@ -100,7 +101,8 @@ export const loginWithEmail = async (
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20000),
     })
 
     // 检查响应的内容类型
@@ -173,7 +175,8 @@ export const registerUser = async (
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20000),
     })
 
     const data = await response.json()
@@ -219,7 +222,8 @@ export const RegisterVerifyAndLogin = async (
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20000),
     })
 
     // 检查响应的内容类型

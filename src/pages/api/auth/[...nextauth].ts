@@ -173,7 +173,7 @@ export default function auth(req: NextApiRequest, httpResponse: NextApiResponse)
     events: {
       async signIn(message) {
         // 登录成功时的处理
-        console.log('User signed in:', message.user.email);
+        console.info('User signed in');
       },
     },
 
