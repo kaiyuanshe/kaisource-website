@@ -18,7 +18,6 @@ func CreateArticle(c *gin.Context) {
 		return
 	}
 
-	now := time.Now()
 	var article = models.Article{
 		Title:         req.Title,
 		Description:   req.Desc,
@@ -32,7 +31,6 @@ func CreateArticle(c *gin.Context) {
 		Author:        req.Author,
 		Translator:    req.Translator,
 		Editor:        req.Editor,
-		PublishTime:   &now,
 		Locale:        normalizeContentLocale(req.Locale),
 		TranslationOf: req.TranslationOf,
 	}
@@ -45,7 +43,9 @@ func CreateArticle(c *gin.Context) {
 
 	userId, _ := uid.(uint)
 	article.PublisherId = uint(userId)
-	article.PublishStatus = 2
+	// Writing is not reviewing. Newly created articles remain private until
+	// an actor with article:review uses the separate status endpoint.
+	article.PublishStatus = 1
 
 	// 创建数据库记录
 	if err := article.Create(); err != nil {

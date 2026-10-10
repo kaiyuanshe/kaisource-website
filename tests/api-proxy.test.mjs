@@ -101,3 +101,10 @@ test('browser requests are bounded and permission denial keeps the authenticated
   const login = readFileSync(new URL('../src/services/login.ts', import.meta.url), 'utf8');
   assert.equal((login.match(/signal: AbortSignal.timeout/g) || []).length, 4);
 });
+
+test('creating an article cannot bypass the separate review permission', () => {
+  const source = readFileSync(new URL('../kaiyuanshe/controllers/article.go', import.meta.url), 'utf8');
+  const create = source.slice(source.indexOf('func CreateArticle'), source.indexOf('func canReadArticleDrafts'));
+  assert.match(create, /article.PublishStatus = 1/);
+  assert.doesNotMatch(create, /PublishStatus = 2|PublishTime:/);
+});

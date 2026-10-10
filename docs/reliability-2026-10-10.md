@@ -2,8 +2,10 @@
 
 ## Scope and observed facts
 
-Production remains the real `727b286` overseas release until a separately
-verified replacement is promoted. Domestic services, shared PostgreSQL,
+At the start of this follow-up production was the real `727b286` overseas
+release. The verified frontend replacement `e91416e` was promoted at 16:27:29
+Asia/Shanghai, with all three original aliases confirmed and the apex 308
+redirect unchanged. Domestic services, shared PostgreSQL,
 schedulers, account roles, DNS, provider secrets and deployment protection are
 outside this change. Existing dirty release-support files are preserved.
 
@@ -55,6 +57,11 @@ Evidence for this follow-up is outside the repository in
   tokens and invalid identities are rejected before any database operation.
   A null private GitHub email does not erase an existing account email.
 * Successful NextAuth logging no longer includes a user email.
+* A further acceptance audit found article creation hard-coded to publish
+  immediately, bypassing the separate review permission. The follow-up changes
+  creation to private pending-review status with no publish timestamp. Only
+  the existing `article:review` status endpoint can publish. Existing articles
+  are not reclassified or migrated.
 
 ## Verification and remaining acceptance
 
@@ -64,14 +71,29 @@ that profile GET has an empty body. New SMTP and OAuth-negative tests do not
 contact production providers. The compiled local proxy returned 200 against
 the overseas read-only article API.
 
-These safeguards are not proof of a permanent Vercel/Azure network remedy.
-Candidate and live-domain results must be recorded separately. SMTP source
-changes require a separate overseas sidecar binary release; deploying Next
-does not update Go. No new credentials or account permissions were provisioned.
+The `e91416e` protected candidate passed all seven frontend and seven API groups;
+temporary automation access was revoked. The same fourteen groups passed on
+the formal domain with default Node transport both before and after the separate
+overseas sidecar binary update. A same-URL HTTP/1.1 article request returned 200
+in 1.97 seconds. These results are not proof of a permanent network remedy.
 
-Real acceptance still requires a reliable Azure-to-GitHub token-exchange
-egress path, valid SMTP authentication, an approved email recipient and a real
-account with existing media/content permissions. Do not use an arbitrary
+The Go safeguards were deployed separately after a server-local logical backup
+and successful restore in a disposable, Unix-socket-only PostgreSQL cluster.
+Only the overseas sidecar was restarted. The domestic API PID and binary hash
+remained identical; no schema migration or production backup restoration ran.
+
+Real GitHub login then succeeded through the provider, shared backend identity
+and NextAuth session. Existing article write/delete permissions were retained.
+Actual Cloudinary upload, image load, metadata edit, own-scope listing,
+foreign-scope denial, session retention and exact test-asset deletion passed.
+Provider signing keys were not exported; the test used the site's ordinary
+authenticated, scoped upload/deletion routes. No new credentials or account
+permissions were provisioned. Detailed final receipts, including the subsequent
+pending-review follow-up, are in `../qa-artifacts/repair-20261010/`.
+
+Email acceptance still requires confirmed SMTP authentication and an approved
+test recipient. Continue watching the previously intermittent GitHub egress;
+one successful real login does not prove lasting reliability. Do not use an arbitrary
 third-party OAuth proxy, disable TLS/state checks, grant roles, or write directly
 to the shared database to make tests pass. Do not repeat a provider code or
 automatically retry registration/delivery/content mutations.

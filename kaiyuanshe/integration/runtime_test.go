@@ -167,6 +167,15 @@ func TestIsolatedRuntime(t *testing.T) {
 	if write.Code != 200 {
 		t.Fatalf("authorized article write failed %d: %s", write.Code, write.Body.String())
 	}
+	var created struct {
+		Data models.Article `json:"data"`
+	}
+	if err := json.Unmarshal(write.Body.Bytes(), &created); err != nil || created.Data.PublishStatus != 1 || created.Data.PublishTime != nil {
+		t.Fatal("article writer bypassed review during creation")
+	}
+	if anonymous := call(http.MethodGet, fmt.Sprintf("/v1/articles/%d", created.Data.ID), "", ""); anonymous.Code == 200 {
+		t.Fatal("new unreviewed article exposed anonymously")
+	}
 	var count int64
 	connection.Model(&models.Article{}).Where("title = ?", "Authorized article").Count(&count)
 	if count != 1 {
