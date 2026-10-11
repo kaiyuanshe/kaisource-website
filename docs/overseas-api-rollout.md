@@ -1,5 +1,11 @@
 # Overseas API rollout without replacing the domestic service
 
+Historical transitional procedure. Since October 11, 2026, the overseas frontend
+uses the Vercel Go backend and Neon production. The existing Azure sidecar and
+domestic API also use the same Neon database. Current deployment and recovery
+details are in `neon-migration-2026-10-11.md`; the local-Azure database connection
+and rollback instructions below apply only to the earlier rollout.
+
 The international Next frontend runs in `open-build/kaisource-website` on Vercel.
 A **separate** Go process on Azure is a transitional hosting adapter, not a claim
 that PostgreSQL or the Go runtime has moved to Vercel. Both versions use the one
