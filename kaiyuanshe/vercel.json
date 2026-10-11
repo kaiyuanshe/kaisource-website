@@ -1,5 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "go",
+  "regions": ["sin1"],
   "buildCommand": "go build -o server ."
 }
