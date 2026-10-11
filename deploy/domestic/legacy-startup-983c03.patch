@@ -1,0 +1,106 @@
+--- a/kaiyuanshe/models/init.go
++++ b/kaiyuanshe/models/init.go
+@@ -1,38 +1,16 @@
+ package models
+ 
+-import (
+-	"kaiyuanshe/config"
+-)
++import "kaiyuanshe/config"
+ 
+ var db = config.DB
+ 
+-func init() {
+-	db.AutoMigrate(&Permission{})
+-	db.AutoMigrate(&PermissionGroup{})
+-	db.AutoMigrate(&Role{})
+-	db.AutoMigrate(&User{})
+-	db.AutoMigrate(&Event{})
+-	db.AutoMigrate(&Recap{})
+-	db.AutoMigrate(&Article{})
+-	db.AutoMigrate(&Testnet{})
+-	db.AutoMigrate(&Category{})
+-	db.AutoMigrate(&Dapp{})
+-	db.AutoMigrate(&Tutorial{})
+-	db.AutoMigrate(&Feedback{})
+-	db.AutoMigrate(&Post{})
+-	db.AutoMigrate(&PostLike{})
+-	db.AutoMigrate(&PostFavorite{})
+-	db.AutoMigrate(&DailyStats{})
+-	db.AutoMigrate(&Follow{})
+-	db.AutoMigrate(&Session{})
+-	db.AutoMigrate(&Agenda{})
+-	db.AutoMigrate(&Speaker{})
+-	db.AutoMigrate(&VolunteerCategory{})
+-	db.AutoMigrate(&Volunteer{})
+-	db.AutoMigrate(&Gift{})
+-	db.AutoMigrate(&Community{})
+-	db.AutoMigrate(&Member{})
+-
+-	InitRolesAndPermissions()
+-	InitCategories()
++// Serving must not alter tables or permission data. Migration is an explicit
++// operator command (-mode=migrate) with a separate administrative DB role.
++func MigrateLegacySchema() error {
++	return db.AutoMigrate(
++		&Permission{}, &PermissionGroup{}, &Role{}, &User{}, &Event{}, &Recap{},
++		&Article{}, &Testnet{}, &Category{}, &Dapp{}, &Tutorial{}, &Feedback{},
++		&Post{}, &PostLike{}, &PostFavorite{}, &DailyStats{}, &Follow{}, &Session{},
++		&Agenda{}, &Speaker{}, &VolunteerCategory{}, &Volunteer{}, &Gift{}, &Community{}, &Member{},
++	)
+ }
+--- a/kaiyuanshe/main.go
++++ b/kaiyuanshe/main.go
+@@ -1,25 +1,44 @@
+ package main
+ 
+ import (
++	"flag"
+ 	"kaiyuanshe/logger"
+ 	"kaiyuanshe/middlewares"
++	"kaiyuanshe/models"
+ 	"kaiyuanshe/routes"
+ 	"kaiyuanshe/scheduler"
++	"log"
++	"net"
++	"os"
+ 
+ 	"github.com/gin-gonic/gin"
+ 	"github.com/spf13/viper"
+ )
+ 
+ func main() {
+-	// 初始化日志
+-	logFile := viper.GetString("log.file")
+-	logLevel := viper.GetString("log.level")
+-	logger.Init(logFile, logLevel)
+-
+-	scheduler.StartScheduler()
+-
++	mode := flag.String("mode", "serve", "serve or migrate")
++	flag.Parse()
++	if *mode == "migrate" {
++		if err := models.MigrateLegacySchema(); err != nil {
++			log.Fatal("Explicit schema migration failed")
++		}
++		return
++	}
++	if *mode != "serve" {
++		log.Fatal("Invalid mode")
++	}
++	logger.Init(viper.GetString("log.file"), viper.GetString("log.level"))
++	if os.Getenv("KAISOURCE_SCHEDULER_ENABLED") != "false" {
++		scheduler.StartScheduler()
++	}
+ 	r := gin.Default()
+ 	r.Use(middlewares.Cors())
+ 	routes.SetupRouter(r)
+-	r.Run(":8080")
++	port := os.Getenv("KAISOURCE_SERVER_PORT")
++	if port == "" {
++		port = "8080"
++	}
++	if err := r.Run(net.JoinHostPort(os.Getenv("KAISOURCE_SERVER_HOST"), port)); err != nil {
++		log.Fatal("HTTP server failed")
++	}
+ }

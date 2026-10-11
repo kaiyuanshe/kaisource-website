@@ -10,9 +10,10 @@ import { getEventById, type Event } from "@/services/event";
 import { createRecap } from "@/services/recap";
 import LocalizedText from "@/components/LocalizedText";
 import { useTranslation } from "@/hooks/useTranslation";
+import { sanitizeMarkdown } from "@/lib/markdown";
 
-const QuillEditor = dynamic(
-  () => import("@/components/quillEditor/QuillEditor"),
+const VditorEditor = dynamic(
+  () => import("@/components/vditorEditor/VditorEditor"),
   { ssr: false },
 );
 
@@ -56,6 +57,7 @@ export default function EventRecap() {
       const res = await createRecap({
         event_id: Number(id),
         ...values,
+        content: await sanitizeMarkdown(values.content),
       });
 
       if (res.success) {
@@ -71,12 +73,13 @@ export default function EventRecap() {
     }
   };
 
+  const eventDescription = event?.description || "";
   const truncatedDescription = useMemo(() => {
-    if (!event?.description) return "";
+    if (!eventDescription) return "";
 
     // 1. 用 DOMParser 解析 HTML 字符串
     const parser = new DOMParser();
-    const doc = parser.parseFromString(event.description, "text/html");
+    const doc = parser.parseFromString(eventDescription, "text/html");
 
     // 2. 移除所有 <img> 标签
     const images = doc.querySelectorAll("img");
@@ -89,12 +92,11 @@ export default function EventRecap() {
     const trimmedText =
       textContent.length > 50 ? textContent.slice(0, 50) + "..." : textContent;
 
-    // 5. 返回 HTML 格式（可以加 <span> 包装）
-    return `<span>${trimmedText}</span>`;
-  }, [event?.description]);
+    return trimmedText;
+  }, [eventDescription]);
 
   // 富文本处理
-  const handleQuillEditorChange = useCallback(
+  const handleEditorChange = useCallback(
     (value: string) => {
       form.setFieldValue("content", value);
     },
@@ -142,10 +144,7 @@ export default function EventRecap() {
 
             <div className={styles.eventDetails}>
               <h1 className={styles.eventTitle}>{event.title}</h1>
-              <p
-                className={styles.eventDescription}
-                dangerouslySetInnerHTML={{ __html: truncatedDescription }}
-              />
+              <p className={styles.eventDescription}>{truncatedDescription}</p>
 
               <div className={styles.eventMeta}>
                 <div className={styles.metaItem}>
@@ -189,10 +188,10 @@ export default function EventRecap() {
                   { min: 10, message: "回顾内容至少需要10个字符" },
                 ]}
               >
-                <QuillEditor
-                  minHeight={500}
+                <VditorEditor
+                  height={500}
                   value={form.getFieldValue("content")}
-                  onChange={handleQuillEditorChange}
+                  onChange={handleEditorChange}
                 />
               </Form.Item>
             </div>

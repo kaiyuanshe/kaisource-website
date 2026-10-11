@@ -1,4 +1,5 @@
-import {marked, Token} from 'marked';
+import {marked, type Token} from 'marked';
+import { sanitizeRenderedHTML } from './safe-html.mjs';
 
 interface MarkedToken {
   type: string;
@@ -75,11 +76,9 @@ const customLineBreakExtension = {
 marked.use({ extensions: [customLineBreakExtension] });
 
 export async function parseMarkdown(content: string, options: MarkdownParseOptions = {}): Promise<string> {
-  const config = { ...defaultOptions, ...options };
-
-  marked.setOptions(config);
-
-  return await marked(content);
+  const { sanitize, ...config } = { ...defaultOptions, ...options };
+  const html = await marked(content, config);
+  return sanitize ? sanitizeRenderedHTML(html) : html;
 }
 
 export function parseMarkdownToTokens(content: string): MarkedToken[] {
@@ -207,5 +206,5 @@ export function getTableOfContents(content: string): Array<{ level: number; text
 }
 
 export async function sanitizeMarkdown(content: string): Promise<string> {
-  return await parseMarkdown(content, { sanitize: true });
+  return parseMarkdown(content, { sanitize: true });
 }
