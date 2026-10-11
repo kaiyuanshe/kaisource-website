@@ -1,6 +1,7 @@
 import http from 'node:http';
 import https from 'node:https';
 import { randomUUID } from 'node:crypto';
+import { upstreamProtectionHeaders } from './api-upstream-headers.mjs';
 
 const BODY_LIMIT = 10 * 1024 * 1024;
 const RESPONSE_LIMIT = 16 * 1024 * 1024;
@@ -63,6 +64,7 @@ export async function proxyAPI(req, res, options = {}) {
   }
   headers['accept-encoding'] = 'identity';
   headers['cache-control'] = 'no-store';
+  Object.assign(headers, upstreamProtectionHeaders(destination, options.protection));
   const transport = destination.protocol === 'https:' ? https : http;
   await new Promise(resolve => {
     let completed = false, upstream, response, timer;

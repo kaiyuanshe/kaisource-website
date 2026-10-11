@@ -61,16 +61,17 @@ go run . -mode cleanup
 not part of a Vercel deployment. `stats` runs once; the designated scheduler
 owner may invoke it. No second scheduler should be enabled during migration.
 The legacy in-process scheduler is opt-in with `KAISOURCE_SCHEDULER_ENABLED`
-and is disabled when `VERCEL` is set. The Vercel backend manifest registers
-protected `/internal/cron/cleanup` and `/internal/cron/stats` jobs. They require
+and is disabled when `VERCEL` is set. The backend exposes protected
+`/internal/cron/cleanup` and `/internal/cron/stats` endpoints, but the Vercel
+manifest registers no cron jobs while Azure remains the scheduler owner. They require
 `Authorization: Bearer $CRON_SECRET` and `KAISOURCE_CRON_ENABLED=true`; missing
 configuration or incorrect credentials fail closed. Do not enable both Cron
 and the legacy scheduler; startup rejects that combination. Responses are
 non-cacheable. Statistics queries have a 30-second deadline, reject failed
 counts without storing partial values, and use the existing unique date index
-to make concurrent deliveries/retries safe. The default schedule runs cleanup and statistics daily at 03:15 and
-03:30 UTC. Increase cleanup frequency only after confirming the Vercel plan and
-the desired operational owner.
+to make concurrent deliveries/retries safe. Introducing a Vercel schedule is a
+separate change after confirming the desired operational owner; an API deployment
+must not silently create a second cleanup or statistics scheduler.
 The HTTP server uses bounded request timeouts and drains requests on SIGTERM
 before closing its database pool. Connections use a 10-second connect timeout;
 ports, pool bounds, and connection lifetime are validated before serving.
