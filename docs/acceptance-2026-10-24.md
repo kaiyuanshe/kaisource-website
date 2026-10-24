@@ -45,7 +45,7 @@ failed attempt is not presented as a successful acceptance check.
   header. It now reuses `upstreamProtectionHeaders`, restricted to the exact
   configured HTTPS origin, with redirects forbidden. Incoming browser protection
   headers remain untrusted; account/JWT and namespace checks remain mandatory.
-  Actual post-deployment upload and cleanup still need to pass.
+  Actual post-deployment upload and cleanup passed, as recorded below.
 
 ## Security patches and local verification
 
@@ -72,10 +72,61 @@ was changed. Under that runtime:
 
 ## Release and remaining gates
 
-Production deployment and post-release genuine browser checks are pending at
-this source checkpoint. Record the resulting source/deployment and actual
-acceptance outcomes below after verification; do not substitute local tests
-for the final domain's behavior.
+Production deployment completed successfully. The read-only current-production
+preflight at **21:43:00** confirmed deployment
+`dpl_8FAdYCFagd58EsPMBBt8uEJNv9PA`, source
+`5057ccd47bf0416fba0d06eea479f1412c2e8a0f`, and all three formal aliases:
+`www.kaisource.org`, `kaisource.org`, and
+`kaisource-website-omega.vercel.app`. All required production configuration
+keys were present. The real Vercel build passed type checking, generated 189
+pages and reported zero dependency vulnerabilities.
+
+Post-release acceptance on the formal domain passed:
+
+- At **21:43:28**, the genuine account `135` / `IanXu` reached the authoritative
+  API, created private draft `22`, read and edited it, and verified that its
+  publisher and private status remained correct. Anonymous detail and list
+  requests could not expose it. Article review and event creation remained
+  forbidden to this actor's existing permissions. The test draft was deleted
+  through the application and its detail became unavailable; this is application
+  soft deletion, not a claim of physical removal from the database.
+- The same run obtained a media signature restricted to this actor's namespace,
+  uploaded a real synthetic 1×1 PNG to Cloudinary, and deleted that exact image.
+  Both media and draft cleanup passed. No unrelated article or asset was removed.
+- A fresh normal GitHub OAuth round trip starting at `/zh-CN/login` returned
+  to `/zh-CN` with Chinese HTML, the same existing account `135`, and an
+  authoritative user API response of 200. Only the test browser's website
+  session was signed out to perform this check; no account, grant or role changed.
+- At a 390×844 emulated mobile viewport, the normal navigation menu switched
+  `/zh-CN/blogs` to `/blogs` and back. The account stayed signed in, article
+  headings changed language, and document width remained 390 pixels. Switching
+  the COSCon'26 detail page from `/zh-CN/blogs/18` to `/blogs/18` also selected
+  the English title and body with no horizontal overflow. At the restored
+  1512-pixel desktop viewport, switching back retained the article and account,
+  selected Chinese content, and kept document width at 1512 pixels. This is
+  browser viewport emulation, not physical-device acceptance.
+- All seven deployed-frontend smoke groups and seven public/negative API smoke
+  groups passed. They cover bilingual pages and published reads, captcha
+  method/proof rules, anonymous sessions, invalid credentials, anonymous
+  media/write denial and invalid-token draft denial. They do not send mail or
+  establish successful event authoring.
+- At **21:54:46–47**, both `kaiyuanshe.cn` and `www.kaiyuanshe.cn` returned 200
+  through their existing Nginx service, while `coscon.kaiyuanshe.cn` returned
+  the intended Vercel 307 to `https://kaiyuanshe.cn/events/coscon`. At **22:02:20**,
+  the overseas apex returned 308 preserving the requested path and query, and
+  the formal site's `/llms.txt` returned the expected public Markdown index.
+
+Browser device metrics and focus emulation were cleared afterward. The earlier
+Azure and Vercel task tab IDs no longer existed when checked; no replacement
+tabs were opened for cleanup. The mobile English screenshot and the repeatable
+sanitized browser acceptance script are in
+`../../qa-artifacts/acceptance-20261024/`.
+
+Application commit `5057ccd` is pushed to `codex/shared-auth-state`. This
+acceptance update is documentation only and does not require another production
+deployment. The previous frontend `dpl_2PTyd4Z2P9KYi2wPmugzWNnCGkg7` remains an
+application rollback candidate with the current shared-Neon/API configuration;
+never roll back by reconnecting the frozen Azure database.
 
 SMTP was previously confirmed to reject its credential with 535. No new mail
 credential or approved test recipient was supplied here, and no mail was sent.
