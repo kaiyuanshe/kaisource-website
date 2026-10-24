@@ -1,5 +1,7 @@
 // Server-side policy shared by all media routes. Never trust client-supplied
 // permissions, folder names, or user IDs. The live API rechecks account rights.
+import { upstreamProtectionHeaders } from '../lib/api-upstream-headers.mjs';
+
 export function mediaRoot(env = process.env) {
   const root = (env.CLOUDINARY_UPLOAD_FOLDER || env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_FOLDERS || "images").replace(/\/+$/, "");
   return validPath(root) ? root : null;
@@ -77,8 +79,9 @@ export async function authorizeMediaRequest(req, readSessionToken, env = process
     return { status: 503, error: "Account verification is unavailable" };
   }
   try {
-    const response = await fetchImpl(`${base.href.replace(/\/+$/, "")}/users/${token.uid}`, {
-      headers: { Authorization: `Bearer ${token.token}` },
+    const destination = `${base.href.replace(/\/+$/, "")}/users/${token.uid}`;
+    const response = await fetchImpl(destination, {
+      headers: { Authorization: `Bearer ${token.token}`, ...upstreamProtectionHeaders(destination, env) },
       cache: "no-store", redirect: "error", signal: AbortSignal.timeout(8000),
     });
     if (response.status === 401 || response.status === 403) {

@@ -4,6 +4,7 @@ import { FaGithub } from "react-icons/fa";
 import LocalizedText from "@/components/LocalizedText";
 import { useTranslation } from "@/hooks/useTranslation";
 import { configuredOAuthUrl } from "@/lib/oauth-url.mjs";
+import { rememberOAuthLocale } from "@/lib/oauth-locale.mjs";
 
 interface GitHubLoginButtonProps {
   loading?: boolean;
@@ -16,7 +17,7 @@ const GitHubLoginButton: React.FC<GitHubLoginButtonProps> = ({
   className,
 }) => {
   const { message } = AntdApp.useApp();
-  const { translateText } = useTranslation();
+  const { translateText, locale } = useTranslation();
   const providerReady = Boolean(configuredOAuthUrl(process.env.NEXT_PUBLIC_OAUTH));
   const handleGitHubSignIn = async () => {
     onLoading?.(true);
@@ -30,6 +31,7 @@ const GitHubLoginButton: React.FC<GitHubLoginButtonProps> = ({
       if (!response.ok) throw new Error("OAuth start unavailable");
       const { url } = await response.json();
       if (!configuredOAuthUrl(url)) throw new Error("Invalid OAuth navigation");
+      rememberOAuthLocale(locale);
       window.location.assign(url);
     } catch {
       // Fail closed; provider/config details must not reach the user or logs.
