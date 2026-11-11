@@ -5,7 +5,7 @@ import styles from "./index.module.css";
 import { useAuth } from "@/contexts/AuthContext";
 import AvatarEdit from "@/components/settings/AvatarEdit";
 import NicknameEdit from "@/components/settings/NicknameEdit";
-import { updateUser } from "../api/user";
+import { updateUser } from "@/services/user";
 import { useSession } from "next-auth/react";
 import LocalizedText from "@/components/LocalizedText";
 import { useTranslation } from "@/hooks/useTranslation";

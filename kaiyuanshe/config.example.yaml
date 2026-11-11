@@ -29,6 +29,11 @@ database:
 scheduler:
   enabled: false
 
+# Enable only on the chosen Cron deployment, after stopping the old scheduler.
+# The secret must be supplied by the secret store (CRON_SECRET), never Git.
+cron:
+  enabled: false
+
 oauth:
   clientId: 
   clientSecret: 

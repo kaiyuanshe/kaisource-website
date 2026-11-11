@@ -10,6 +10,7 @@ import (
 	"kaiyuanshe/services"
 	"kaiyuanshe/utils"
 	"net/http"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
@@ -56,8 +57,14 @@ func HandleLogin(c *gin.Context) {
 	}
 
 	accessToken := tokenResp.AccessToken
+	if accessToken == "" {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "Provider authorization failed. Please start sign-in again.", nil)
+		return
+	}
 	reqArgs.URL = viper.GetString("oauth.getUser")
 	reqArgs.Method = "GET"
+	// Do not send the code/client secret again in the profile GET body.
+	reqArgs.Body = nil
 
 	header := make(map[string]string)
 	header["Authorization"] = fmt.Sprintf("Bearer %s", accessToken)
@@ -69,12 +76,15 @@ func HandleLogin(c *gin.Context) {
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Network error, please try again later.", nil)
 		return
 	}
-
 	var resp GetUserResponseV2
 	err = json.Unmarshal([]byte(userResult), &resp)
 	if err != nil {
 		logger.Log.Errorf("Unmarshal err: %v", err)
 		utils.ErrorResponse(c, http.StatusInternalServerError, "Network error, please try again later.", nil)
+		return
+	}
+	if resp.ID <= 0 || strings.TrimSpace(resp.Login) == "" {
+		utils.ErrorResponse(c, http.StatusUnauthorized, "Provider identity unavailable. Please start sign-in again.", nil)
 		return
 	}
 
@@ -84,7 +94,11 @@ func HandleLogin(c *gin.Context) {
 	if err == nil {
 		// user.Avatar = resp.Data.Avatar
 		// user.Username = resp.Data.UserName
-		user.Email = resp.Email
+		// A private GitHub email is null in /user, not a request to erase the
+		// authoritative account's existing email address.
+		if resp.Email != "" {
+			user.Email = resp.Email
+		}
 		user.Github = resp.Login
 		user.Avatar = resp.AvatarURL
 		err = models.UpdateUser(user)

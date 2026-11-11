@@ -24,8 +24,35 @@ func TestLoadWithoutFileHasNoDatabaseSideEffects(t *testing.T) {
 	if viper.GetBool("scheduler.enabled") {
 		t.Fatal("scheduler must be opt-in")
 	}
+	if viper.GetBool("cron.enabled") {
+		t.Fatal("cron must be opt-in")
+	}
 	if err := ValidateRuntime(); err == nil {
 		t.Fatal("missing JWT key accepted")
+	}
+}
+
+func TestCronRequiresASecretAndOneSchedulerOwner(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("KAISOURCE_CONFIG_FILE", "")
+	t.Setenv("JWT_SECRET", "test-only-runtime-key")
+	t.Setenv("CRON_SECRET", "")
+	t.Setenv("KAISOURCE_CRON_SECRET", "")
+	t.Setenv("KAISOURCE_CRON_ENABLED", "true")
+	t.Setenv("KAISOURCE_SCHEDULER_ENABLED", "false")
+	if err := Load(); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateRuntime(); err == nil {
+		t.Fatal("enabled cron accepted missing secret")
+	}
+	t.Setenv("CRON_SECRET", "fixture-cron-secret")
+	if err := ValidateRuntime(); err != nil {
+		t.Fatal("explicit cron secret was not recognized", err)
+	}
+	t.Setenv("KAISOURCE_SCHEDULER_ENABLED", "true")
+	if err := ValidateRuntime(); err == nil {
+		t.Fatal("two scheduler owners accepted")
 	}
 }
 
@@ -106,6 +133,9 @@ func TestLegacyYAMLDSNHandlesIPv6AndEscapedCredentials(t *testing.T) {
 	if password != "test @password:with/symbols" || u.Query().Get("sslmode") != "disable" {
 		t.Fatal("explicit local SSL mode and credentials were not preserved")
 	}
+	if u.Query().Get("TimeZone") != "" {
+		t.Fatal("legacy URI must not include the driver-incompatible TimeZone query parameter")
+	}
 }
 
 func TestInvalidRuntimePortAndConnectionTimeoutAreRejected(t *testing.T) {
@@ -118,5 +148,26 @@ func TestInvalidRuntimePortAndConnectionTimeoutAreRejected(t *testing.T) {
 	viper.Set("database.connect_timeout_seconds", 0)
 	if _, err := DatabaseDSN(); err == nil {
 		t.Fatal("unbounded connection timeout accepted")
+	}
+}
+
+func TestSidecarCanBindLoopbackWithoutChangingLegacyDefault(t *testing.T) {
+	t.Chdir(t.TempDir())
+	t.Setenv("KAISOURCE_CONFIG_FILE", "")
+	t.Setenv("JWT_SECRET", "runtime-test-key")
+	t.Setenv("KAISOURCE_SERVER_HOST", "127.0.0.1")
+	t.Setenv("KAISOURCE_SERVER_PORT", "8081")
+	if err := Load(); err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateRuntime(); err != nil {
+		t.Fatal(err)
+	}
+	if viper.GetString("server.host") != "127.0.0.1" || viper.GetInt("server.port") != 8081 {
+		t.Fatal("sidecar bind overrides not applied")
+	}
+	viper.Set("server.host", "invalid.example.test")
+	if err := ValidateRuntime(); err == nil {
+		t.Fatal("invalid host accepted")
 	}
 }

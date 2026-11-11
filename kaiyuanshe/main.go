@@ -12,6 +12,7 @@ import (
 	"kaiyuanshe/routes"
 	"kaiyuanshe/scheduler"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -124,7 +125,7 @@ func run() error {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	server := &http.Server{
-		Addr: fmt.Sprintf(":%d", viper.GetInt("server.port")), Handler: r,
+		Addr: net.JoinHostPort(viper.GetString("server.host"), fmt.Sprint(viper.GetInt("server.port"))), Handler: r,
 		ReadHeaderTimeout: 10 * time.Second, ReadTimeout: 30 * time.Second,
 		WriteTimeout: 60 * time.Second, IdleTimeout: 120 * time.Second,
 	}

@@ -35,6 +35,7 @@ func TestIsolatedRuntime(t *testing.T) {
 	t.Setenv("KAISOURCE_DATABASE_URL", dsn)
 	t.Setenv("JWT_SECRET", "isolated-runtime-test-key-not-for-production")
 	t.Setenv("CRON_SECRET", "isolated-cron-secret-not-for-production")
+	t.Setenv("KAISOURCE_CRON_ENABLED", "true")
 	t.Chdir(t.TempDir())
 	if config.DB != nil {
 		t.Fatal("import opened database")
@@ -166,6 +167,15 @@ func TestIsolatedRuntime(t *testing.T) {
 	if write.Code != 200 {
 		t.Fatalf("authorized article write failed %d: %s", write.Code, write.Body.String())
 	}
+	var created struct {
+		Data models.Article `json:"data"`
+	}
+	if err := json.Unmarshal(write.Body.Bytes(), &created); err != nil || created.Data.PublishStatus != 1 || created.Data.PublishTime != nil {
+		t.Fatal("article writer bypassed review during creation")
+	}
+	if anonymous := call(http.MethodGet, fmt.Sprintf("/v1/articles/%d", created.Data.ID), "", ""); anonymous.Code == 200 {
+		t.Fatal("new unreviewed article exposed anonymously")
+	}
 	var count int64
 	connection.Model(&models.Article{}).Where("title = ?", "Authorized article").Count(&count)
 	if count != 1 {
@@ -221,6 +231,7 @@ func TestIsolatedRuntime(t *testing.T) {
 		t.Fatal("category seed is not idempotent")
 	}
 	t.Run("shared authentication state", func(t *testing.T) { testSharedAuthenticationState(t, connection) })
+	t.Run("article draft visibility", func(t *testing.T) { testArticleReadPermissions(t, connection, user.ID) })
 	t.Run("article operation permissions", func(t *testing.T) { testArticleOperationPermissions(t, connection, user.ID) })
 	t.Run("protected Vercel cron routes", func(t *testing.T) {
 		for _, path := range []string{"/internal/cron/cleanup", "/internal/cron/stats"} {
@@ -239,5 +250,6 @@ func TestIsolatedRuntime(t *testing.T) {
 			}
 		}
 	})
+	t.Run("cron retries and failure isolation", func(t *testing.T) { testCronReliability(t, connection) })
 	t.Run("NextAuth real login and writes", func(t *testing.T) { testNextAuthRuntime(t, connection) })
 }

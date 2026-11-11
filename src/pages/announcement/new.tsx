@@ -1,3 +1,4 @@
+import type { ArticleFormValues } from "@/lib/articleForm";
 import { useCallback, useState } from "react";
 import {
   Form,
@@ -22,12 +23,12 @@ import styles from "./new.module.css";
 
 import VditorEditor from "@/components/vditorEditor/VditorEditor";
 // import QuillEditor from '@/components/quillEditor/QuillEditor';
-import UploadCardImg from "@/components/uploadCardImg/UploadCardImg";
+import UploadCardImg, { type CoverImage } from "@/components/uploadCardImg/UploadCardImg";
 import ContentLocaleFields, {
   getContentLocaleValues,
 } from "@/components/ContentLocaleFields";
 
-import { createArticle } from "../api/article";
+import { createArticle } from "@/services/article";
 import router from "next/router";
 import { usePermissionGuard } from "@/hooks/usePermissionGuard";
 import LocalizedText from "@/components/LocalizedText";
@@ -38,7 +39,7 @@ const { TextArea } = Input;
 export default function NewArticlePage() {
   const { translateText: translateUiText } = useTranslation();
   const { message } = AntdApp.useApp();
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<ArticleFormValues>();
 
   // 权限检查
   const { isLoading, hasPermission } = usePermissionGuard("article:write");
@@ -48,7 +49,7 @@ export default function NewArticlePage() {
   const [inputValue, setInputValue] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [cloudinaryImg, setCloudinaryImg] = useState<Record<string, unknown>>();
+  const [cloudinaryImg, setCloudinaryImg] = useState<CoverImage | null>(null);
   const [category] = useState("announcement");
 
   // 编辑器处理
@@ -59,7 +60,7 @@ export default function NewArticlePage() {
     [form],
   );
 
-  const handleSubmit = async (values: Record<string, unknown>) => {
+  const handleSubmit = async (values: ArticleFormValues) => {
     try {
       console.log(values);
       setIsSubmitting(true);

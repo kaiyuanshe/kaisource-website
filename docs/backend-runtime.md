@@ -37,6 +37,7 @@ Set secrets through the deployment secret store, never Git or command arguments:
 | `KAISOURCE_EMAIL_*` | Existing mail settings if registration email is enabled |
 | `EMAIL_REDIRECT_URL` | Verified registration callback; must match the chosen login flow |
 | `CRON_SECRET` | Secret for the Vercel cleanup/statistics HTTP jobs; never put it in a URL |
+| `KAISOURCE_CRON_ENABLED` | Defaults to `false`; enable only on the selected scheduler deployment |
 
 Most YAML keys can use the `KAISOURCE_` prefix, upper case, with dots replaced
 by underscores. Existing OAuth camel-case keys have explicit
@@ -60,12 +61,17 @@ go run . -mode cleanup
 not part of a Vercel deployment. `stats` runs once; the designated scheduler
 owner may invoke it. No second scheduler should be enabled during migration.
 The legacy in-process scheduler is opt-in with `KAISOURCE_SCHEDULER_ENABLED`
-and is disabled when `VERCEL` is set. The Vercel backend manifest registers
-protected `/internal/cron/cleanup` and `/internal/cron/stats` jobs. They require
-`Authorization: Bearer $CRON_SECRET`; missing or incorrect credentials fail
-closed. The default schedule runs cleanup and statistics daily at 03:15 and
-03:30 UTC. Increase cleanup frequency only after confirming the Vercel plan and
-the desired operational owner.
+and is disabled when `VERCEL` is set. The backend exposes protected
+`/internal/cron/cleanup` and `/internal/cron/stats` endpoints, but the Vercel
+manifest registers no cron jobs while Azure remains the scheduler owner. They require
+`Authorization: Bearer $CRON_SECRET` and `KAISOURCE_CRON_ENABLED=true`; missing
+configuration or incorrect credentials fail closed. Do not enable both Cron
+and the legacy scheduler; startup rejects that combination. Responses are
+non-cacheable. Statistics queries have a 30-second deadline, reject failed
+counts without storing partial values, and use the existing unique date index
+to make concurrent deliveries/retries safe. Introducing a Vercel schedule is a
+separate change after confirming the desired operational owner; an API deployment
+must not silently create a second cleanup or statistics scheduler.
 The HTTP server uses bounded request timeouts and drains requests on SIGTERM
 before closing its database pool. Connections use a 10-second connect timeout;
 ports, pool bounds, and connection lifetime are validated before serving.
@@ -96,8 +102,12 @@ point it at the new Go runtime until all of these gates are met:
 5. Change only the international frontend's upstream after successful staging
    verification. Preserve Azure services and the old upstream for rollback.
 
-No production migration, database exposure, or Azure redeployment has been
-performed by this code change.
+The authentication migration was applied on Azure on 2026-10-08 after making a
+logical backup. A candidate backend was briefly switched onto port 8080, but
+was rolled back to the preserved old binary when checks confirmed the deployed
+Chinese registration form did not send the new required verification proof.
+The three additive authentication tables remain installed. The database is
+still private. See `release-audit-2026-10-08.md` before further cutover work.
 
 ## Isolated verification
 
@@ -120,3 +130,5 @@ real registration/mail-activation/login flow with loopback SMTP. Run
 `npm run test:auth-runtime` to additionally exercise actual NextAuth, Secure
 cookies, CSRF, the shared user ID, and an authenticated article write. These are
 isolated tests, not verification of production accounts or external providers.
+
+For a staged overseas release, `KAISOURCE_SERVER_HOST=127.0.0.1` and `KAISOURCE_SERVER_PORT=8081` keep the dedicated process private. See `overseas-api-rollout.md`; existing domestic 8080 service must not be replaced. Anonymous article reads now enforce published status at the API, including translation fallback. Supplied bearer tokens are checked against current database permissions before draft access.

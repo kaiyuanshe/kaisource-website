@@ -31,10 +31,10 @@ dayjs.extend(utc);
 import Link from "next/link";
 import { useRouter } from "next/router";
 import styles from "./edit.module.css";
-import UploadCardImg from "@/components/uploadCardImg/UploadCardImg";
+import UploadCardImg, { type CoverImage } from "@/components/uploadCardImg/UploadCardImg";
 import ContentLocaleFields from "@/components/ContentLocaleFields";
 
-import { getEventById, updateEvent } from "@/pages/api/event";
+import { getEventById, updateEvent, type Event } from "@/services/event";
 import dynamic from "next/dynamic";
 
 // const QuillEditor = dynamic(() => import('@/components/quillEditor/QuillEditor'), { ssr: false });
@@ -124,29 +124,8 @@ export default function EditEventPage() {
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [eventType, setEventType] = useState<string>("");
-  const [cloudinaryImg, setCloudinaryImg] = useState<
-    { public_id: string; secure_url: string } | undefined
-  >();
-  const [event, setEvent] = useState<{
-    ID: number;
-    title: string;
-    description: string;
-    event_mode: string;
-    event_type: string;
-    link: string;
-    location: string;
-    start_time: string;
-    end_time: string;
-    cover_img: string;
-    tags: string[];
-    twitter: string;
-    event_setting: number;
-    bage_link: string;
-    registration_link: string;
-    apply_link: string;
-    topic_collection_link: string;
-    courseware_submit_link: string;
-  } | null>(null);
+  const [cloudinaryImg, setCloudinaryImg] = useState<CoverImage | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [eventSetting, setEventSetting] = useState<number>();
 

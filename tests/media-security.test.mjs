@@ -74,6 +74,40 @@ test('authoritative API verification is required and API claims override cached 
   assert.deepEqual(result.actor, member);
 });
 
+test('protected backend verification uses only the operator credential at its exact configured origin', async () => {
+  const protectedEnv = {
+    ...env,
+    API_PROXY_BYPASS_ORIGIN: 'https://api.example.test',
+    API_PROXY_BYPASS_SECRET: 'fixture-server-protection-key',
+  };
+  const request = { ...req, headers: { ...req.headers, 'x-vercel-protection-bypass': 'untrusted-browser-value' } };
+  const result = await authorizeMediaRequest(request, async () => session(), protectedEnv, async (url, options) => {
+    assert.equal(url, 'https://api.example.test/v1/users/42');
+    assert.equal(options.redirect, 'error');
+    assert.deepEqual(options.headers, {
+      Authorization: `Bearer ${session().token}`,
+      'x-vercel-protection-bypass': 'fixture-server-protection-key',
+    });
+    return success();
+  });
+  assert.deepEqual(result.actor, member);
+  assert.ok(!JSON.stringify(result).includes('fixture-server-protection-key'));
+});
+
+test('media verification never sends the protection credential to a rollback or different origin', async () => {
+  const rollbackEnv = {
+    ...env,
+    INTERNAL_API_URL: 'https://rollback.example.test/v1',
+    API_PROXY_BYPASS_ORIGIN: 'https://api.example.test',
+    API_PROXY_BYPASS_SECRET: 'fixture-server-protection-key',
+  };
+  await authorizeMediaRequest(req, async () => session(), rollbackEnv, async (url, options) => {
+    assert.equal(url, 'https://rollback.example.test/v1/users/42');
+    assert.deepEqual(options.headers, { Authorization: `Bearer ${session().token}` });
+    return success();
+  });
+});
+
 test('expired tokens and revoked permissions fail closed before storage operations', async () => {
   for (const status of [401, 403, 500]) {
     const result = await authorizeMediaRequest(req, async () => session(), env, async () => new Response('{}', { status }));

@@ -1,8 +1,10 @@
 import React from "react";
-import { Button } from "antd";
+import { Button, App as AntdApp } from "antd";
 import { FaGithub } from "react-icons/fa";
-import { useRouter } from "next/router";
 import LocalizedText from "@/components/LocalizedText";
+import { useTranslation } from "@/hooks/useTranslation";
+import { configuredOAuthUrl } from "@/lib/oauth-url.mjs";
+import { rememberOAuthLocale } from "@/lib/oauth-locale.mjs";
 
 interface GitHubLoginButtonProps {
   loading?: boolean;
@@ -14,13 +16,29 @@ const GitHubLoginButton: React.FC<GitHubLoginButtonProps> = ({
   onLoading,
   className,
 }) => {
-  const router = useRouter();
-
-  const handleGitHubSignIn = () => {
+  const { message } = AntdApp.useApp();
+  const { translateText, locale } = useTranslation();
+  const providerReady = Boolean(configuredOAuthUrl(process.env.NEXT_PUBLIC_OAUTH));
+  const handleGitHubSignIn = async () => {
     onLoading?.(true);
-    const currentUrl = window.location.origin + router.pathname;
-    const oauthUrl = `${process.env.NEXT_PUBLIC_OAUTH}&redirect_uri=${currentUrl}&scope=read:user user:email`;
-    router.push(oauthUrl); // 跳转 OAuth 授权页
+    try {
+      const response = await fetch('/api/oauth/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: '{}',
+      });
+      if (!response.ok) throw new Error("OAuth start unavailable");
+      const { url } = await response.json();
+      if (!configuredOAuthUrl(url)) throw new Error("Invalid OAuth navigation");
+      rememberOAuthLocale(locale);
+      window.location.assign(url);
+    } catch {
+      // Fail closed; provider/config details must not reach the user or logs.
+      message.error(translateText("登录失败..."));
+    } finally {
+      onLoading?.(false);
+    }
   };
 
   return (
@@ -28,6 +46,7 @@ const GitHubLoginButton: React.FC<GitHubLoginButtonProps> = ({
       type="default"
       icon={<FaGithub size={18} />}
       onClick={handleGitHubSignIn}
+      disabled={!providerReady}
       loading={loading}
       className={className}
       style={{

@@ -1,3 +1,5 @@
+import { upstreamProtectionHeaders } from '@/lib/api-upstream-headers.mjs'
+
 // 登录参数 (code方式)
 export interface LoginParams {
   code: string
@@ -56,9 +58,11 @@ export const loginUser = async (params: LoginParams): Promise<LoginResult> => {
     const response = await fetch(`${apiUrl}/login`, {
       method: 'POST',
       headers: {
+        ...(typeof window === 'undefined' ? upstreamProtectionHeaders(apiUrl) : {}),
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(35000),
     })
 
     const data = await response.json()
@@ -98,9 +102,11 @@ export const loginWithEmail = async (
     const response = await fetch(`${apiUrl}/login-email`, {
       method: 'POST',
       headers: {
+        ...(typeof window === 'undefined' ? upstreamProtectionHeaders(apiUrl) : {}),
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20000),
     })
 
     // 检查响应的内容类型
@@ -171,9 +177,11 @@ export const registerUser = async (
     const response = await fetch(`${apiUrl}/register`, {
       method: 'POST',
       headers: {
+        ...(typeof window === 'undefined' ? upstreamProtectionHeaders(apiUrl) : {}),
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20000),
     })
 
     const data = await response.json()
@@ -217,9 +225,11 @@ export const RegisterVerifyAndLogin = async (
     const response = await fetch(`${apiUrl}/register-verify`, {
       method: 'POST',
       headers: {
+        ...(typeof window === 'undefined' ? upstreamProtectionHeaders(apiUrl) : {}),
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(20000),
     })
 
     // 检查响应的内容类型

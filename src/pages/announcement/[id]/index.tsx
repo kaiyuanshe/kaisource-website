@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   getArticleById,
   updateArticlePublishStatus,
-} from "@/pages/api/article";
+} from "@/services/article";
 import dayjs from "dayjs";
 import { sanitizeMarkdown } from "@/lib/markdown";
 import CommentSection from "@/components/comments/CommentSection";

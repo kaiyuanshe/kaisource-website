@@ -1,10 +1,12 @@
 package models
 
 import (
-	"log"
+	"context"
+	"errors"
 	"time"
 
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type DailyStats struct {
@@ -113,43 +115,40 @@ func calcGrowth(base, delta int) float64 {
 }
 
 func CollectDailyStats() error {
-	// 获取当天日期（去掉时分秒）
-	today := time.Now().Truncate(24 * time.Hour)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	return CollectDailyStatsContext(ctx)
+}
 
-	var existing DailyStats
-	err := db.Where("date = ?", today).First(&existing).Error
-	if err == nil {
-		log.Println("Stats already collected for today")
-		return nil
+// Cron requests can be retried or delivered to separate serverless instances.
+// Keep the existing UTC-day key and let its unique index arbitrate duplicates.
+// All counts must succeed before persisting a row; never publish zero counts
+// merely because a table query failed or the request was cancelled.
+func CollectDailyStatsContext(ctx context.Context) error {
+	if db == nil {
+		return errors.New("database is not initialized")
 	}
-
-	var usersCount int64
-	var blogsCount int64
-	var tutorialsCount int64
-	var eventsCount int64
-	var postsCount int64
-
-	db.Model(&User{}).Count(&usersCount)
-	db.Model(&Article{}).Count(&blogsCount)
-	db.Model(&Tutorial{}).Count(&tutorialsCount)
-	db.Model(&Event{}).Count(&eventsCount)
-	db.Model(&Post{}).Count(&postsCount)
-
-	stats := DailyStats{
-		Date:      today,
-		Users:     int(usersCount),
-		Blogs:     int(blogsCount),
-		Tutorials: int(tutorialsCount),
-		Events:    int(eventsCount),
-		Posts:     int(postsCount),
-	}
-	if err := db.Create(&stats).Error; err != nil {
-		log.Println("Failed to store daily stats:", err)
-		return err
-	}
-
-	log.Println("Daily stats collected for", today.Format("2006-01-02"))
-	return nil
+	today := time.Now().UTC().Truncate(24 * time.Hour)
+	return db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		var exists int64
+		if err := tx.Model(&DailyStats{}).Where("date = ?", today).Count(&exists).Error; err != nil {
+			return err
+		}
+		if exists > 0 {
+			return nil
+		}
+		counts := make([]int64, 5)
+		for index, model := range []interface{}{&User{}, &Article{}, &Tutorial{}, &Event{}, &Post{}} {
+			if err := tx.Model(model).Count(&counts[index]).Error; err != nil {
+				return err
+			}
+		}
+		stats := DailyStats{Date: today, Users: int(counts[0]), Blogs: int(counts[1]),
+			Tutorials: int(counts[2]), Events: int(counts[3]), Posts: int(counts[4])}
+		return tx.Clauses(clause.OnConflict{
+			Columns: []clause.Column{{Name: "date"}}, DoNothing: true,
+		}).Create(&stats).Error
+	})
 }
 
 type TimeSeriesData struct {

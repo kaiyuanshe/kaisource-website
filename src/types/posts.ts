@@ -1,4 +1,4 @@
-import type { Post as PostType, PostsStats } from '@/pages/api/post';
+import type { Post as PostType, PostsStats } from '@/services/post';
 import dayjs from 'dayjs';
 export type { PostType, PostsStats };
 

@@ -37,7 +37,7 @@ test('locale changes reload page-local data without remounting authentication', 
   assert.doesNotMatch(app, /<SessionProvider\s+key=/);
   const source = readFileSync(new URL('../src/lib/currentLocale.ts', import.meta.url), 'utf8');
   assert.match(source, /Router\.locale \|\| document\.documentElement\.lang/);
-  for (const file of ['src/pages/api/article.ts', 'src/pages/api/event.ts', 'src/lib/homeData.ts']) {
+  for (const file of ['src/services/article.ts', 'src/services/event.ts', 'src/lib/homeData.ts']) {
     assert.match(readFileSync(new URL(`../${file}`, import.meta.url), 'utf8'), /import \{ getCurrentLocale \}/);
   }
 });

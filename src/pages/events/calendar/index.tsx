@@ -23,8 +23,8 @@ import {
 } from "lucide-react";
 import dayjs, { Dayjs } from "dayjs";
 import Link from "next/link";
-import { getEvents } from "../../api/event";
-import type { Event } from "../../api/event";
+import { getEvents } from "@/services/event";
+import type { Event } from "@/services/event";
 import { useAuth } from "@/contexts/AuthContext";
 import { addToGoogleCalendar } from "@/lib/google-calendar";
 import styles from "./index.module.css";

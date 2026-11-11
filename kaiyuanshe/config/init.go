@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 
@@ -20,6 +21,7 @@ func Load() error {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 	viper.SetDefault("server.port", 8080)
+	viper.SetDefault("server.host", "")
 	viper.SetDefault("server.trusted_proxies", []string{"127.0.0.1", "::1"})
 	viper.SetDefault("database.port", 5432)
 	viper.SetDefault("database.sslmode", "require")
@@ -29,6 +31,7 @@ func Load() error {
 	viper.SetDefault("database.connect_timeout_seconds", 10)
 	viper.SetDefault("log.level", "info")
 	viper.SetDefault("scheduler.enabled", false)
+	viper.SetDefault("cron.enabled", false)
 	viper.SetDefault("email.timeout", 15)
 	for key, names := range map[string][]string{
 		"database.url":       {"DATABASE_URL"},
@@ -62,8 +65,17 @@ func ValidateRuntime() error {
 	if viper.GetString("jwt.secret") == "" {
 		return errors.New("JWT_SECRET or jwt.secret is required")
 	}
+	if host := viper.GetString("server.host"); host != "" && net.ParseIP(host) == nil {
+		return errors.New("server host must be an IP address")
+	}
 	if port := viper.GetInt("server.port"); port < 1 || port > 65535 {
 		return errors.New("server port must be between 1 and 65535")
+	}
+	if viper.GetBool("cron.enabled") && viper.GetBool("scheduler.enabled") {
+		return errors.New("choose one scheduler owner: cron or the legacy scheduler, not both")
+	}
+	if viper.GetBool("cron.enabled") && strings.TrimSpace(viper.GetString("cron.secret")) == "" {
+		return errors.New("CRON_SECRET is required when cron jobs are enabled")
 	}
 	return nil
 }

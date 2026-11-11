@@ -5,14 +5,15 @@ import { signIn } from "next-auth/react";
 import styles from "./index.module.css";
 import { useRouter } from "next/router";
 import { useLocalStorage } from "@/hooks/useLocalStorage";
-import { registerUser } from "../api/login";
-// import { sendVerificationCode, verifyCode } from '../api/verification'
+import { registerUser } from "@/services/login";
+// import { sendVerificationCode, verifyCode } from '@/services/verification'
 import GitHubLoginButton from "@/components/GitHubLoginButton";
 import AuthManager from "@/lib/authManager";
 import { useAuth } from "@/contexts/AuthContext";
 import Captcha, { type CaptchaRef } from "@/components/Captcha";
 import LocalizedText from "@/components/LocalizedText";
 import { useTranslation } from "@/hooks/useTranslation";
+import { consumeOAuthLocale } from "@/lib/oauth-locale.mjs";
 
 type LoginFieldType = {
   email?: string;
@@ -45,7 +46,7 @@ const LoginPage: React.FC = () => {
   // 使用简化的认证上下文，利用 NextAuth 内置缓存机制
   const { session } = useAuth();
   const router = useRouter();
-  const { code, uid, token } = router.query;
+  const { code, state, uid, token } = router.query;
   const hasTriedLogin = useRef(false); // 防止重复登录
 
   const { set, get } = useLocalStorage("user");
@@ -64,11 +65,12 @@ const LoginPage: React.FC = () => {
 
       hasTriedLogin.current = true;
       setLoading(true);
+      const returnLocale = code ? consumeOAuthLocale(locale) : locale;
 
       try {
         const authManager = AuthManager.getInstance();
 
-        let res: any;
+        let res;
         // 如果有 uid 和 token，则使用注册验证登录
         if (uid && token) {
           res = await authManager.ensureLogin(async () => {
@@ -85,6 +87,7 @@ const LoginPage: React.FC = () => {
             return await signIn("code-login", {
               redirect: false,
               code: code as string,
+              state: state as string,
             });
           });
         }
@@ -93,26 +96,30 @@ const LoginPage: React.FC = () => {
           // 防止 React Strict Mode 导致的重复消息显示
           if (authManager.shouldShowSuccessMessage()) {
             if (uid && token) {
-              message.success("邮箱验证成功，欢迎登录");
+              message.success(returnLocale === "en"
+                ? "Your email is verified. You're signed in."
+                : "邮箱验证成功，欢迎登录");
             } else {
-              message.success("登录成功");
+              message.success(returnLocale === "en" ? "You're signed in." : "登录成功");
             }
-            router.push("/");
           }
-          // 清除 URL 中的参数，NextAuth 会自动更新 session 状态
-          router.replace(router.pathname, undefined, { shallow: true });
+          // Replace the callback once: competing push/replace calls could discard
+          // the selected language or leave a consumed code in browser history.
+          await router.replace("/", undefined, { locale: returnLocale });
         } else {
           if (uid && token) {
-            message.warning("邮箱验证失败，链接可能已过期...");
+            message.warning(translateUiText("邮箱验证失败，链接可能已过期..."));
           } else {
-            message.warning("登录失败...");
+            message.warning(translateUiText("登录失败..."));
           }
           hasTriedLogin.current = false; // 允许重试
+          if (code) await router.replace("/login", undefined, { locale: returnLocale });
         }
       } catch (error) {
         console.error("Login error:", error);
-        message.error("网络错误...");
+        message.error(translateUiText("网络错误..."));
         hasTriedLogin.current = false; // 允许重试
+        if (code) await router.replace("/login", undefined, { locale: returnLocale });
       } finally {
         setLoading(false);
       }
@@ -124,7 +131,7 @@ const LoginPage: React.FC = () => {
     return () => {
       clearTimeout(timer);
     };
-  }, [code, uid, token, session, router, message]);
+  }, [code, state, uid, token, session, router, message, locale, translateUiText]);
 
   const onLoginFinish = async (values: LoginFieldType) => {
     try {

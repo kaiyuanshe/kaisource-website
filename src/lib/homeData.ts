@@ -1,5 +1,5 @@
-import type { Article } from "@/pages/api/article";
-import type { Event } from "@/pages/api/event";
+import type { Article } from "@/services/article";
+import type { Event } from "@/services/event";
 import { getCurrentLocale } from './currentLocale';
 
 type ApiResponse<T> = {

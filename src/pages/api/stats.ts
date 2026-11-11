@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { apiRequest } from './api';
+import { apiRequest } from '@/services/api';
 
 // StatsOverview 类型定义
 export interface CategoryStats {

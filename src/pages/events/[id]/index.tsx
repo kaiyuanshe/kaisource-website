@@ -20,7 +20,7 @@ import {
   getEventById,
   updateEventPublishStatus,
   getSessionsByEvent,
-} from "@/pages/api/event";
+} from "@/services/event";
 import { sanitizeMarkdown } from "@/lib/markdown";
 import LocalizedText from "@/components/LocalizedText";
 import TranslationFallbackNotice from "@/components/TranslationFallbackNotice";

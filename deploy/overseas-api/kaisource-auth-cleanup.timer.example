@@ -1,0 +1,11 @@
+[Unit]
+Description=Single-owner cleanup of expired overseas authentication state
+
+[Timer]
+OnBootSec=5min
+OnUnitActiveSec=1h
+RandomizedDelaySec=5min
+Unit=kaisource-auth-cleanup.service
+
+[Install]
+WantedBy=timers.target

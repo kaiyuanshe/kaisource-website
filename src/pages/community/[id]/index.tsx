@@ -33,9 +33,9 @@ import {
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/router";
 import styles from "./index.module.css";
-import { getCommunity, Community } from "../../api/comunity";
+import { getCommunity, Community } from "@/services/comunity";
 import AvatarEdit from "@/components/settings/AvatarEdit";
-import { createMember, deleteMember, updateMember } from "@/pages/api/member";
+import { createMember, deleteMember, updateMember } from "@/services/member";
 import { useAuth } from "@/contexts/AuthContext";
 
 // 根据接口返回的数据结构定义接口

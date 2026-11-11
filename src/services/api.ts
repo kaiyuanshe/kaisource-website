@@ -33,21 +33,22 @@ export const apiRequest = async <T>(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: body ? JSON.stringify(body) : null,
+    signal: AbortSignal.timeout(20000),
   };
 
   try {
     const response = await fetch(`${apiUrl}${endpoint}`, options);
-    // 捕获 401 和 403
+    // A permission denial is not an expired login. Keep the valid session.
     if (response.status === 401 || response.status === 403) {
-      message.error("登录信息已过期，请重新登录");
-      if (!preview) await signOut({ redirect: true, callbackUrl: "/" });
+      message.error(response.status === 401 ? "登录信息已过期，请重新登录" : "无权限访问");
+      if (!preview && response.status === 401) await signOut({ redirect: true, callbackUrl: "/" });
 
       return {
         code: response.status,
         message:
           response.status === 401
             ? "登录信息已过期，请重新登录"
-            : "无权限访问，请重新登录",
+            : "无权限访问",
       };
     }
 

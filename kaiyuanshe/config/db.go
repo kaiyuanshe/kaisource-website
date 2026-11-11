@@ -48,7 +48,6 @@ func DatabaseDSN() (string, error) {
 	u := &url.URL{Scheme: "postgresql", Host: net.JoinHostPort(dbHost, dbPort), Path: "/" + dbName, User: url.UserPassword(dbUser, dbPassword)}
 	q := u.Query()
 	q.Set("sslmode", dbSsl)
-	q.Set("TimeZone", "Asia/Shanghai")
 	q.Set("connect_timeout", strconv.Itoa(timeout))
 	u.RawQuery = q.Encode()
 	return u.String(), nil

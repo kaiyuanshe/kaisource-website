@@ -1,3 +1,4 @@
+import type { ArticleFormValues } from "@/lib/articleForm";
 import { useCallback, useEffect, useState } from "react";
 import {
   Form,
@@ -23,12 +24,12 @@ import styles from "./edit.module.css";
 
 import VditorEditor from "@/components/vditorEditor/VditorEditor";
 // import QuillEditor from '@/components/quillEditor/QuillEditor';
-import UploadCardImg from "@/components/uploadCardImg/UploadCardImg";
+import UploadCardImg, { type CoverImage } from "@/components/uploadCardImg/UploadCardImg";
 import ContentLocaleFields, {
   getContentLocaleValues,
 } from "@/components/ContentLocaleFields";
 
-import { getArticleById, updateArticle } from "@/pages/api/article";
+import { getArticleById, updateArticle, type Article } from "@/services/article";
 import { usePermissionGuard } from "@/hooks/usePermissionGuard";
 import LocalizedText from "@/components/LocalizedText";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -48,7 +49,7 @@ function extractPublicIdFromUrl(url: string): string {
 export default function EditArticlePage() {
   const { translateText: translateUiText } = useTranslation();
   const { message } = AntdApp.useApp();
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<ArticleFormValues>();
   const router = useRouter();
   const { id } = router.query;
   const rId = Array.isArray(id) ? id[0] : id;
@@ -58,15 +59,13 @@ export default function EditArticlePage() {
   const { isLoading: permissionLoading, hasPermission } =
     usePermissionGuard("article:write");
 
-  const [article, setArticle] = useState<Record<string, unknown>>();
+  const [article, setArticle] = useState<Article>();
   const [tags, setTags] = useState<string[]>([]);
   const [inputVisible, setInputVisible] = useState(false);
   const [inputValue, setInputValue] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [cloudinaryImg, setCloudinaryImg] = useState<
-    { public_id: string; secure_url: string } | undefined
-  >();
+  const [cloudinaryImg, setCloudinaryImg] = useState<CoverImage | null>(null);
   const [category] = useState("announcement");
 
   // 编辑器处理
@@ -77,7 +76,7 @@ export default function EditArticlePage() {
     [form],
   );
 
-  const handleSubmit = async (values: Record<string, unknown>) => {
+  const handleSubmit = async (values: ArticleFormValues) => {
     try {
       console.log(values);
       setIsSubmitting(true);
@@ -97,7 +96,7 @@ export default function EditArticlePage() {
         ...getContentLocaleValues(values),
       };
 
-      const result = await updateArticle(article.ID, updateArticleRequest);
+      const result = await updateArticle(String(article.ID), updateArticleRequest);
       if (result.success) {
         message.success(result.message);
         router.push("/announcement");

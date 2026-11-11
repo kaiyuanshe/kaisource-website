@@ -62,3 +62,16 @@ func JWT(permission string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+// Public reads stay anonymous unless a bearer token is supplied. Supplied but
+// invalid/revoked tokens fail closed; they never grant access to drafts.
+func OptionalJWT() gin.HandlerFunc {
+	required := JWT("")
+	return func(c *gin.Context) {
+		if c.GetHeader("Authorization") == "" {
+			c.Next()
+			return
+		}
+		required(c)
+	}
+}

@@ -1,5 +1,12 @@
 # Unified website deployment
 
+Current production status (October 11, 2026): the shared database is Neon in
+Singapore, and the overseas Go API runs in the existing Vercel `kaiyuanshe`
+project. Azure domestic services use the same Neon production database. See
+`neon-migration-2026-10-11.md` for the actual configuration, validation, and
+recovery boundary. The preparation and rollout gates below describe the original
+migration plan, not the current database location.
+
 ## Confirmed scope
 
 Confirmed on 2026-10-07:
