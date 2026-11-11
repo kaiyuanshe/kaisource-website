@@ -49,6 +49,9 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || "/v1",
   },
   /* config options here */
+  allowedDevOrigins: ['127.0.0.1'],
+  // Avoid the Pages Router dev-indicator initialization race in Next.js 16.4.
+  devIndicators: false,
   experimental: {},
   typescript: {
     ignoreBuildErrors: false,

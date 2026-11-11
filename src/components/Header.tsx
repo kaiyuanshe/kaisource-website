@@ -668,6 +668,12 @@ export default function Header() {
                       href={child.href || "/"}
                       className={`${styles.navDropdownItem} ${child.hot ? styles.navDropdownItemHot : ""}`}
                       onClick={() => setActiveDropdown(null)}
+                      target={child.target}
+                      rel={
+                        child.target === "_blank"
+                          ? "noopener noreferrer"
+                          : undefined
+                      }
                     >
                       <div className={styles.dropdownItemContent}>
                         <span className={styles.dropdownItemTitle}>
@@ -707,6 +713,7 @@ export default function Header() {
                   alt="KaiSource symbol"
                   width={44}
                   height={44}
+                  loading="eager"
                   className={styles.brandSymbol}
                 />
                 <span className={styles.brandNames}>
@@ -722,6 +729,7 @@ export default function Header() {
                 alt={translateUiText("开源社 Logo")}
                 width={100}
                 height={100}
+                loading="eager"
                 className={styles.logoImage}
               />
             )}
