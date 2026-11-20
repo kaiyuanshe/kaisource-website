@@ -80,12 +80,11 @@ async function changeProduction(target, deploymentId, rollback = false) {
   }
   throw new Error(`${target.name} production alias update timed out`);
 }
-async function probe(target, deployment, route) {
+async function prepareBypass(target, project) {
   // This credential stays on the server side and is only sent to its own project's
   // immutable deployment URL. Do not disable deployment protection for testing.
   let bypass = target.bypass;
   if (!bypass) {
-    const project = await api(target, `/v9/projects/${target.id}`);
     bypass = Object.keys(project.protectionBypass || {}).find(k => project.protectionBypass[k]?.scope === 'automation-bypass');
     if (!bypass) {
       const created = await api(target, `/v1/projects/${target.id}/protection-bypass`, 'PATCH', {
@@ -98,13 +97,25 @@ async function probe(target, deployment, route) {
   }
   assert.ok(bypass, `Missing ${target.name} automation protection bypass`);
   secrets.push(bypass);
-  const r = await fetch(`https://${deployment.url}${route}`, {
-    headers: {'x-vercel-protection-bypass': bypass}, redirect: 'manual', signal: AbortSignal.timeout(30000), cache: 'no-store',
-  });
-  assert.equal(r.status, 200, `${target.name} health status`);
-  const data = await r.json();
-  assert.equal(data.status, 'ok');
-  assert.equal(data.revision, sha, `${target.name} running revision`);
+}
+async function probe(target, deployment, route) {
+  for (let i = 0; i < 20; i++) {
+    const r = await fetch(`https://${deployment.url}${route}`, {
+      headers: {'x-vercel-protection-bypass': target.bypass}, redirect: 'manual', signal: AbortSignal.timeout(30000), cache: 'no-store',
+    });
+    // A new project bypass can take time to reach the deployment's edge config.
+    // Retry only the read-only health request; never follow a login redirect.
+    if ([302, 401, 403, 503].includes(r.status) && i < 19) {
+      await r.arrayBuffer();
+      await pause(3000);
+      continue;
+    }
+    assert.equal(r.status, 200, `${target.name} health status`);
+    const data = await r.json();
+    assert.equal(data.status, 'ok');
+    assert.equal(data.revision, sha, `${target.name} running revision`);
+    return;
+  }
 }
 
 const receipt = {revision: sha, targets: [], result: 'preparing'};
@@ -119,6 +130,7 @@ try {
     assert.ok(!project.link, 'Unexpected native Git auto-deployment; review duplicate triggers');
     target.previous = project.targets?.production?.id;
     assert.ok(target.previous, 'Existing production deployment is required for rollback');
+    await prepareBypass(target, project);
     target.deployment = await createCandidate(target, project);
     assert.equal(target.deployment.projectId, target.id);
     assert.equal(target.deployment.ownerId, team);
