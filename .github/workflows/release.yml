@@ -1,0 +1,134 @@
+name: Validate and deploy
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# PR checks can be superseded. Never interrupt a production traffic switch.
+concurrency:
+  group: release-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  validate:
+    name: Test and build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
+        with:
+          go-version-file: kaiyuanshe/go.mod
+          cache-dependency-path: kaiyuanshe/go.sum
+      - run: npm ci --legacy-peer-deps --no-audit --no-fund
+      - name: Frontend regression tests
+        run: node --test tests/*.test.mjs
+      - name: Deployment artifact security
+        run: PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p '*_test.py' -v
+      - run: npm run typecheck
+      - run: npm run build
+      - name: Backend tests
+        working-directory: kaiyuanshe
+        run: go test ./...
+      - name: Isolated backend integration
+        run: |
+          echo "$(pg_config --bindir)" >> "$GITHUB_PATH"
+      - run: npm run test:backend-runtime
+      - name: Package the exact source and Linux API binary
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        run: |
+          mkdir -p .ci-bin
+          (cd kaiyuanshe && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -o ../.ci-bin/kaisource-api .)
+          git archive --format=tar "$GITHUB_SHA" -o "$RUNNER_TEMP/kaisource-release.tar"
+          printf '%s\n' "$GITHUB_SHA" > .release-sha
+          tar --append --file="$RUNNER_TEMP/kaisource-release.tar" .ci-bin/kaisource-api .release-sha
+          gzip "$RUNNER_TEMP/kaisource-release.tar"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          name: domestic-${{ github.sha }}
+          path: ${{ runner.temp }}/kaisource-release.tar.gz
+          retention-days: 3
+          if-no-files-found: error
+
+  vercel:
+    name: Deploy overseas
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    environment:
+      name: production
+      url: https://www.kaisource.org
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .nvmrc
+      - name: Refuse a superseded main revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api repos/$GITHUB_REPOSITORY/commits/main --jq .sha)" = "$GITHUB_SHA"
+      - run: npm install --global vercel@66.5.0 --no-audit --no-fund
+      - name: Verify candidates and promote backend then frontend
+        env:
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_FRONTEND_PROJECT_ID: ${{ vars.VERCEL_FRONTEND_PROJECT_ID }}
+          VERCEL_BACKEND_PROJECT_ID: ${{ vars.VERCEL_BACKEND_PROJECT_ID }}
+          VERCEL_FRONTEND_TOKEN: ${{ secrets.VERCEL_FRONTEND_TOKEN }}
+          VERCEL_BACKEND_TOKEN: ${{ secrets.VERCEL_BACKEND_TOKEN }}
+        run: node scripts/deploy-vercel.mjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: overseas-receipt-${{ github.sha }}
+          path: .ci-receipts/vercel.json
+          if-no-files-found: ignore
+
+  aliyun:
+    name: Deploy domestic
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    environment:
+      name: production
+      url: https://kaiyuanshe.cn
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: domestic-${{ github.sha }}
+      - name: Refuse a superseded main revision
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: test "$(gh api repos/$GITHUB_REPOSITORY/commits/main --jq .sha)" = "$GITHUB_SHA"
+      - name: Install restricted deployment identity
+        env:
+          DEPLOY_KEY: ${{ secrets.ALIYUN_DEPLOY_KEY }}
+          HOST_KEY: ${{ secrets.ALIYUN_HOST_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KEY" > ~/.ssh/kaisource-ci
+          chmod 600 ~/.ssh/kaisource-ci
+          printf '%s\n' "$HOST_KEY" > ~/.ssh/known_hosts
+      - name: Start candidate, verify and switch traffic
+        env:
+          DEPLOY_HOST: ${{ vars.ALIYUN_DEPLOY_HOST }}
+        run: |
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 \
+            -o ServerAliveInterval=20 -i ~/.ssh/kaisource-ci \
+            "kaisource-deploy@$DEPLOY_HOST" "deploy $GITHUB_SHA" < kaisource-release.tar.gz
+          echo "Domestic deployment: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - name: Remove temporary SSH identity
+        if: always()
+        run: rm -f ~/.ssh/kaisource-ci

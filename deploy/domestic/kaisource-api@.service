@@ -1,0 +1,23 @@
+[Unit]
+Description=KaiSource API release %i
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=kaisource
+Group=kaisource
+WorkingDirectory=/srv/kaisource/releases/%i/kaiyuanshe
+EnvironmentFile=/etc/kaisource/backend.env
+EnvironmentFile=/etc/kaisource/releases/%i.env
+ExecStart=/srv/kaisource/releases/%i/kaisource-api -mode=serve
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=25
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

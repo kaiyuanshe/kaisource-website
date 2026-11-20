@@ -120,7 +120,8 @@ func run() error {
 			c.JSON(503, gin.H{"status": "unavailable"})
 			return
 		}
-		c.JSON(200, gin.H{"status": "ok"})
+		c.Header("Cache-Control", "no-store")
+		c.JSON(200, gin.H{"status": "ok", "revision": os.Getenv("KAISOURCE_RELEASE_SHA")})
 	})
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()

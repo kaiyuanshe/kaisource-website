@@ -64,3 +64,7 @@ Thumbs.db
 config/config.yaml
 *config.yaml
 .vercel
+.ci-bin/
+.ci-receipts/
+.release-sha
+__pycache__/

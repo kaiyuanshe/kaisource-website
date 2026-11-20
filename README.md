@@ -24,15 +24,14 @@ read-only showcase is available with `SITE_PREVIEW_MODE=true`; see
 [preview deployment](docs/preview-deployment.md) for its public-content snapshot
 and deliberately disabled sign-in/editing. This is not a production migration.
 
-The Vercel
-deployment adaptation and shared-database cutover are not complete yet. Creating
-this repository does not deploy the application or change the existing Azure
-services, database, DNS, or other contributors' access.
+The domestic site runs on Alibaba Cloud. The international frontend and Go API
+run on Vercel. Both use the same authoritative Neon PostgreSQL database in
+Singapore; the former Azure database is a recovery snapshot, not a writable
+production copy.
 
-The inherited Azure auto-deployment workflow has been removed. The build/test
-workflow is retained as an inactive template at
-`deploy/ci/github-actions.yml.example`: the current GitHub credential does not
-have workflow write permission. No GitHub Actions workflow is enabled yet.
+GitHub Actions validates PRs and publishes successful `main` commits to both
+hosting environments. See [automatic deployment](docs/automatic-deployment.md)
+for release gates, environment configuration, health checks and rollback.
 
 The legacy
 `deploy.sh` remains for reference only: it assumes the original server layout,

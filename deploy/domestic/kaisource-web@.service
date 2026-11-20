@@ -1,0 +1,25 @@
+[Unit]
+Description=KaiSource frontend release %i
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+User=kaisource
+Group=kaisource
+WorkingDirectory=/srv/kaisource/releases/%i
+EnvironmentFile=/etc/kaisource/frontend.env
+EnvironmentFile=/etc/kaisource/media.env
+EnvironmentFile=/etc/kaisource/releases/%i.env
+ExecStart=/opt/kaisource-node/bin/node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port ${WEB_PORT}
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=25
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/srv/kaisource/releases/%i/.next
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
