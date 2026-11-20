@@ -37,7 +37,10 @@ Vercel project environment variables or the existing root-only Alibaba env files
 
 ## Overseas release
 
-`scripts/deploy-vercel.mjs` uploads the checked-out commit to the two existing
+`scripts/deploy-vercel.mjs` uses Vercel's deployment API with project-scoped tokens
+(the CLI requires user-profile access that these limited tokens do not grant).
+It uploads only tracked regular source files, excluding credential/build files,
+and uploads the checked-out commit to the two existing
 projects, using the root for Next.js and `kaiyuanshe/` for Go. Both candidates are
 production builds with alias assignment postponed. `/api/health` and `/healthz`
 must report the exact commit. The backend is promoted first, then the frontend.

@@ -1,7 +1,10 @@
 // CI-only release: build immutable candidates, verify, then promote existing projects.
 // Token values, environment values and protected response bodies are never logged.
-import { spawn } from 'node:child_process';
-import { mkdirSync, writeFileSync, appendFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, writeFileSync, appendFileSync, readFileSync, existsSync, lstatSync } from 'node:fs';
+import {createHash} from 'node:crypto';
+import {setTimeout as pause} from 'node:timers/promises';
+import {selectVercelFiles} from './vercel-source-files.mjs';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 
@@ -22,28 +25,60 @@ async function api(target, endpoint, method = 'GET', body) {
     ...(body === undefined ? {} : {body: JSON.stringify(body)}), signal: AbortSignal.timeout(30000),
   });
   assert.ok(r.ok, `Provider ${method} ${endpoint.split('?')[0]} returned ${r.status}`);
-  return r.json();
+  const text = await r.text();
+  return text ? JSON.parse(text) : {};
 }
-function cli(target, args) {
-  return new Promise((resolve, reject) => {
-    const child = spawn('vercel', [...args, '--scope', 'open-build', '--token', target.token], {
-      cwd: path.resolve(target.cwd),
-      env: {...process.env, VERCEL_ORG_ID: team, VERCEL_PROJECT_ID: target.id, VERCEL_TELEMETRY_DISABLED: '1'},
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-    let stdout = '', stderr = '';
-    child.stdout.on('data', b => { stdout += b; });
-    child.stderr.on('data', b => { stderr += b; });
-    const timer = setTimeout(() => child.kill('SIGTERM'), 15 * 60 * 1000);
-    child.on('error', error => { clearTimeout(timer); reject(error); });
-    child.on('close', code => {
-      clearTimeout(timer);
-      if (code !== 0) {
-        console.error(clean(stderr).slice(-6000));
-        reject(new Error(`${target.name} deployment command failed`));
-      } else resolve(stdout.trim());
-    });
+async function createCandidate(target, project) {
+  const tracked = execFileSync('git', ['ls-files', '-z'], {encoding: 'utf8'}).split('\0').filter(Boolean);
+  const ignoreFile = path.resolve(target.cwd, '.vercelignore');
+  const names = selectVercelFiles(tracked, target.cwd, existsSync(ignoreFile) ? readFileSync(ignoreFile, 'utf8') : '');
+  const files = [], pending = [...names];
+  await Promise.all(Array.from({length: 8}, async () => {
+    while (pending.length) {
+      const file = pending.shift();
+      const filename = path.resolve(target.cwd, file);
+      const stat = lstatSync(filename);
+      if (stat.isDirectory()) continue; // Git submodules are not uploaded as empty application files.
+      assert.ok(stat.isFile() && !stat.isSymbolicLink(), 'Only regular tracked files may be uploaded');
+      const content = readFileSync(filename);
+      const digest = createHash('sha1').update(content).digest('hex');
+      const r = await fetch(`https://api.vercel.com/v2/files?teamId=${team}`, {
+        method: 'POST', headers: {authorization: 'Bearer ' + target.token,
+          'content-type': 'application/octet-stream', 'x-vercel-digest': digest,
+          'content-length': String(content.length)}, body: content, signal: AbortSignal.timeout(60000),
+      });
+      assert.ok(r.ok, `Source file upload returned ${r.status}`);
+      await r.arrayBuffer();
+      files.push({file, sha: digest, size: content.length, mode: stat.mode & 0o777});
+    }
+  }));
+  const {$schema, ...config} = JSON.parse(readFileSync(path.resolve(target.cwd, 'vercel.json'), 'utf8'));
+  const created = await api(target, '/v13/deployments?skipAutoDetectionConfirmation=1', 'POST', {
+    ...config, name: project.name, project: target.id, target: 'production',
+    autoAssignCustomDomains: false, files,
+    env: {KAISOURCE_RELEASE_SHA: sha},
+    meta: {githubCommitSha: sha, githubCommitRef: 'main', githubCommitOrg: 'kaiyuanshe', githubCommitRepo: 'kaisource-website'},
   });
+  assert.ok(created.id, 'Candidate deployment ID missing');
+  console.log(`Created ${target.name} candidate ${created.id}; waiting for build`);
+  for (let i = 0; i < 180; i++) {
+    const deployment = await api(target, `/v13/deployments/${created.id}`);
+    if (deployment.readyState === 'READY') return deployment;
+    assert.ok(!['ERROR', 'CANCELED'].includes(deployment.readyState), `${target.name} candidate build ${deployment.readyState}: ${deployment.id}`);
+    await pause(5000);
+  }
+  throw new Error(`${target.name} candidate build timed out`);
+}
+async function changeProduction(target, deploymentId, rollback = false) {
+  await api(target, `/v${rollback ? '9' : '10'}/projects/${target.id}/${rollback ? 'rollback' : 'promote'}/${deploymentId}`, 'POST', {});
+  for (let i = 0; i < 60; i++) {
+    const project = await api(target, `/v9/projects/${target.id}`);
+    const request = project.lastAliasRequest;
+    if (project.targets?.production?.id === deploymentId && request?.toDeploymentId === deploymentId && request.jobStatus === 'succeeded') return;
+    assert.ok(!(request?.toDeploymentId === deploymentId && ['failed', 'skipped'].includes(request.jobStatus)), 'Production alias update failed');
+    await pause(3000);
+  }
+  throw new Error(`${target.name} production alias update timed out`);
 }
 async function probe(target, deployment, route) {
   // This credential stays on the server side and is only sent to its own project's
@@ -84,16 +119,7 @@ try {
     assert.ok(!project.link, 'Unexpected native Git auto-deployment; review duplicate triggers');
     target.previous = project.targets?.production?.id;
     assert.ok(target.previous, 'Existing production deployment is required for rollback');
-    const directory = path.resolve(target.cwd, '.vercel');
-    mkdirSync(directory, {recursive: true});
-    writeFileSync(path.join(directory, 'project.json'), JSON.stringify({projectId: target.id, orgId: team}));
-    const output = await cli(target, ['deploy', '--prod', '--skip-domain', '--yes',
-      '--env', `KAISOURCE_RELEASE_SHA=${sha}`,
-      '--meta', `githubCommitSha=${sha}`, '--meta', 'githubCommitRef=main',
-      '--meta', 'githubCommitOrg=kaiyuanshe', '--meta', 'githubCommitRepo=kaisource-website']);
-    const url = output.match(/https:\/\/([a-z0-9.-]+\.vercel\.app)/)?.[1];
-    assert.ok(url, 'Candidate URL missing');
-    target.deployment = await api(target, `/v13/deployments/${url}`);
+    target.deployment = await createCandidate(target, project);
     assert.equal(target.deployment.projectId, target.id);
     assert.equal(target.deployment.ownerId, team);
     assert.equal(target.deployment.readyState, 'READY');
@@ -107,7 +133,7 @@ try {
     // Mark before the call: restore even if promotion succeeded but the response
     // was lost. Only these two existing projects can be affected.
     promoted.push(target);
-    await cli(target, ['promote', target.deployment.url, '--yes']);
+    await changeProduction(target, target.deployment.id);
     const project = await api(target, `/v9/projects/${target.id}`);
     assert.equal(project.targets?.production?.id, target.deployment.id);
     await probe(target, target.deployment, target.name === 'backend' ? '/healthz' : '/api/health');
@@ -123,7 +149,7 @@ try {
   console.error(clean(error.message));
   for (const target of promoted.reverse()) {
     try {
-      await cli(target, ['rollback', target.previous, '--yes']);
+      await changeProduction(target, target.previous, true);
       console.log(`Restored ${target.name} previous production ${target.previous}`);
     } catch { console.error(`ROLLBACK NEEDS ATTENTION: ${target.name}`); receipt.rollbackNeedsAttention = true; }
   }

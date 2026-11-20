@@ -79,7 +79,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: test "$(gh api repos/$GITHUB_REPOSITORY/commits/main --jq .sha)" = "$GITHUB_SHA"
-      - run: npm install --global vercel@66.5.0 --no-audit --no-fund
       - name: Verify candidates and promote backend then frontend
         env:
           VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
