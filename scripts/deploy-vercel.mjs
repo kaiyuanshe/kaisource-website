@@ -72,12 +72,11 @@ async function createCandidate(target, project) {
 async function changeProduction(target, deploymentId, rollback = false) {
   await api(target, `/v${rollback ? '9' : '10'}/projects/${target.id}/${rollback ? 'rollback' : 'promote'}/${deploymentId}`, 'POST', {});
   for (let i = 0; i < 60; i++) {
-    const project = await api(target, `/v9/projects/${target.id}`);
+    const project = await api(target, `/v9/projects/${target.id}?rollbackInfo=true`);
     const request = project.lastAliasRequest;
-    // Synchronous promotions clear lastAliasRequest rather than keeping a
-    // succeeded job. The production target plus live alias probe is decisive.
-    if (project.targets?.production?.id === deploymentId && (!request ||
-      (request.toDeploymentId === deploymentId && request.jobStatus === 'succeeded'))) return;
+    // Vercel only returns alias-job status when rollbackInfo is requested.
+    if (project.targets?.production?.id === deploymentId &&
+      request?.toDeploymentId === deploymentId && request.jobStatus === 'succeeded') return;
     assert.ok(!(request?.toDeploymentId === deploymentId && ['failed', 'skipped'].includes(request.jobStatus)), 'Production alias update failed');
     await pause(3000);
   }
