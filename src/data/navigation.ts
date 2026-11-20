@@ -158,22 +158,6 @@ export const mainNavItems: MenuItem[] = [
         group: 'cooperation'
       },
       {
-        key: 'open-source-ecosystem-60qa',
-        labelKey: 'navigation.open_source_ecosystem_60qa',
-        href: 'https://60qa.kaiyuanshe.cn/',
-        descriptionKey: 'navigation.open_source_ecosystem_60qa_description',
-        group: 'cooperation',
-        target: '_blank'
-      },
-      {
-        key: 'china-oss-report',
-        labelKey: 'navigation.knowledge.china_open_source_annual_report',
-        href: '/osreports',
-        descriptionKey: 'navigation.china_oss_report_description',
-        group: 'reports',
-        hot: true
-      },
-      {
         key: 'china-oss-pioneer',
         labelKey: 'navigation.honors.china_open_source_pioneer',
         href: '/community/pioneer',
@@ -216,6 +200,26 @@ export const mainNavItems: MenuItem[] = [
         href: '/events/calendar',
         descriptionKey: 'navigation.activity_calendar_description',
         group: 'calendar'
+      }
+    ]
+  },
+  {
+    key: 'services',
+    labelKey: 'navigation.open_source_services',
+    children: [
+      {
+        key: 'china-oss-report',
+        labelKey: 'navigation.knowledge.china_open_source_annual_report',
+        href: '/osreports',
+        descriptionKey: 'navigation.china_oss_report_description',
+        hot: true
+      },
+      {
+        key: 'open-source-ecosystem-60qa',
+        labelKey: 'navigation.open_source_ecosystem_60qa',
+        href: 'https://60qa.kaiyuanshe.cn/',
+        descriptionKey: 'navigation.open_source_ecosystem_60qa_description',
+        target: '_blank'
       }
     ]
   },
