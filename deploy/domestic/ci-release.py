@@ -70,13 +70,21 @@ def healthy(web, api, revision):
 
 
 def public_revision(revision):
-    raw = subprocess.check_output([
-        'curl', '--fail', '--silent', '--show-error', '--max-time', '15',
-        '--resolve', 'kaiyuanshe.cn:443:127.0.0.1',
-        'https://kaiyuanshe.cn/api/health',
-    ])
-    if json.loads(raw).get('revision') != revision:
-        raise RuntimeError('Nginx is not serving the requested revision')
+    # systemctl reload returns before Nginx's new workers accept connections.
+    # Poll this read-only route while the previous application stays available.
+    for _ in range(30):
+        result = subprocess.run([
+            'curl', '--fail', '--silent', '--show-error', '--max-time', '5',
+            '--resolve', 'kaiyuanshe.cn:443:127.0.0.1',
+            'https://kaiyuanshe.cn/api/health',
+        ], capture_output=True)
+        try:
+            if result.returncode == 0 and json.loads(result.stdout).get('revision') == revision:
+                return
+        except (ValueError, TypeError):
+            pass
+        time.sleep(1)
+    raise RuntimeError('Nginx is not serving the requested revision')
 
 
 def extract(archive, destination, revision):
