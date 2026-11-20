@@ -7,6 +7,46 @@ publish the domestic and overseas sites. Production runs are serialized and are
 not cancelled during a traffic switch. Superseded commits are refused before
 publishing. Do not configure a second native Vercel Git production publisher.
 
+## Contributor review and publishing identity
+
+This is a public repository. Vercel's [collaboration guidance](https://vercel.com/docs/deployments/troubleshoot-project-collaboration)
+states that collaboration is free for public repositories; contributors do not
+need paid Vercel seats just to contribute code here. Production publishing uses
+the existing project's credentials in the GitHub `production` environment.
+Contributors do not receive those credentials or Vercel project access.
+
+The contribution path is:
+
+1. Open a PR against `main`. Validation runs without production credentials;
+   this workflow does not publish a PR preview or a production deployment.
+2. `jueduizone` reviews the change as the owner of all paths in
+   `.github/CODEOWNERS`. New commits dismiss previous approvals.
+3. The PR must pass the GitHub Actions `Test and build` check against the current
+   `main`, and review conversations must be resolved before merging.
+4. Merge the reviewed PR. The resulting `main` commit is validated again and
+   deployed to Vercel and Alibaba Cloud by the existing release workflow.
+
+The repository's `main` branch protection enforces these requirements, including
+for administrators. Only `jueduizone` has an explicit PR-review bypass, so the
+maintainer can merge their own PR (GitHub does not allow self-approval). The
+required build check still applies to that bypass. Force pushes and deletion are
+disabled. Repository administrators can change branch protection settings; this
+policy does not remove their administrative access.
+
+CODEOWNERS is versioned here; the branch protection settings live in GitHub and
+must also be configured if this repository is recreated. Require one approval,
+code owner review, dismissal of stale approvals, conversation resolution, and
+the strict `Test and build` check from GitHub Actions (app ID `15368`). Enable
+administrator enforcement and allow only `jueduizone` to bypass PR review.
+
+Keep the real commit authors and history. Approving or merging a PR does not
+change its authorship. Vercel applies different author/team membership rules to
+private Git repositories; recheck those rules before making this repository
+private. A provider permission denial must stop the release, not be worked
+around by changing author identity or hiding Git metadata. For public forks,
+GitHub may require a maintainer to approve the first Actions run; Vercel's native
+Git previews have their own fork authorization, which this workflow does not use.
+
 ## Validation
 
 The workflow uses `.nvmrc`, the Go module's version, lockfile installation,
