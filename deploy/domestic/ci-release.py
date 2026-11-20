@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Restricted SSH entry point. Accepts a source artifact; never accepts a shell."""
 import fcntl
+import hashlib
 import json
 import os
 from pathlib import Path, PurePosixPath
@@ -14,6 +15,8 @@ import time
 import traceback
 import urllib.error
 import urllib.request
+import urllib.parse
+import zipfile
 
 BASE = Path('/srv/kaisource')
 CONFIG = Path('/etc/kaisource')
@@ -122,14 +125,55 @@ def extract(archive, destination, revision):
     (destination / 'kaisource-api').chmod(0o750)
 
 
-def deploy(revision):
+def fetch_artifact(envelope, output):
+    url = envelope.get('url', '')
+    parsed = urllib.parse.urlsplit(url)
+    if (parsed.scheme != 'https' or parsed.port not in (None, 443) or parsed.username or parsed.password or
+            not re.fullmatch(r'productionresults[a-z0-9]+\.blob\.core\.windows\.net', parsed.hostname or '') or
+            not parsed.path.startswith('/actions-results/') or parsed.fragment):
+        raise RuntimeError('Only GitHub Actions signed artifact storage is permitted')
+    expected = envelope.get('digest', '')
+    if not re.fullmatch(r'sha256:[a-f0-9]{64}', expected):
+        raise RuntimeError('GitHub artifact SHA256 digest is required')
+
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            raise RuntimeError('Artifact download redirects are prohibited')
+
+    opener = urllib.request.build_opener(NoRedirect())
+    with tempfile.TemporaryFile() as downloaded:
+        digest = hashlib.sha256()
+        size = 0
+        started = time.monotonic()
+        with opener.open(url, timeout=30) as response:
+            if response.status != 200:
+                raise RuntimeError('Artifact download failed')
+            while chunk := response.read(1024 * 1024):
+                size += len(chunk)
+                if size > 260 * 1024 * 1024 or time.monotonic() - started > 600:
+                    raise RuntimeError('Downloaded artifact too large')
+                digest.update(chunk)
+                downloaded.write(chunk)
+        if 'sha256:' + digest.hexdigest() != expected:
+            raise RuntimeError('GitHub artifact digest mismatch')
+        downloaded.seek(0)
+        with zipfile.ZipFile(downloaded) as bundle:
+            members = bundle.infolist()
+            if len(members) != 1 or members[0].filename != 'kaisource-release.tar.gz' or members[0].file_size > 256 * 1024 * 1024:
+                raise RuntimeError('Unexpected GitHub artifact envelope')
+            with bundle.open(members[0]) as source:
+                shutil.copyfileobj(source, output)
+
+
+def deploy(revision, envelope=None):
     previous = json.loads(STATE.read_text()) if STATE.exists() else {
         'revision': 'legacy', 'slot': 'legacy', 'release': str((BASE / 'current').resolve()),
         'web': 3000, 'api': 8080, 'units': ['kaisource-web.service', 'kaisource-api.service'],
     }
     if previous['revision'] == revision:
         # Consume stdin so an uploader never observes a broken pipe on retries.
-        shutil.copyfileobj(sys.stdin.buffer, open(os.devnull, 'wb'))
+        if envelope is None:
+            shutil.copyfileobj(sys.stdin.buffer, open(os.devnull, 'wb'))
         healthy(previous['web'], previous['api'], revision)
         public_revision(revision)
         print(json.dumps({'result': 'already-current', 'revision': revision}))
@@ -146,12 +190,15 @@ def deploy(revision):
     accepted = False
     try:
         with tempfile.NamedTemporaryFile(dir='/var/tmp', prefix='kaisource-ci-', suffix='.tar.gz') as archive:
-            size = 0
-            while chunk := sys.stdin.buffer.read(1024 * 1024):
-                size += len(chunk)
-                if size > 256 * 1024 * 1024:
-                    raise RuntimeError('Compressed artifact too large')
-                archive.write(chunk)
+            if envelope is not None:
+                fetch_artifact(envelope, archive)
+            else:
+                size = 0
+                while chunk := sys.stdin.buffer.read(1024 * 1024):
+                    size += len(chunk)
+                    if size > 256 * 1024 * 1024:
+                        raise RuntimeError('Compressed artifact too large')
+                    archive.write(chunk)
             archive.flush()
             release.mkdir(mode=0o750)
             extract(archive.name, release, revision)
@@ -231,12 +278,20 @@ def main():
     if command == 'status':
         print(STATE.read_text() if STATE.exists() else '{"revision":"legacy"}')
         return
-    match = re.fullmatch(r'deploy ([a-f0-9]{40})', command)
+    match = re.fullmatch(r'(deploy|deploy-fetch) ([a-f0-9]{40})', command)
     if not match:
-        raise RuntimeError('Only deploy <full commit SHA> or status is permitted')
+        raise RuntimeError('Only a versioned deployment or status is permitted')
+    envelope = None
+    if match[1] == 'deploy-fetch':
+        raw = sys.stdin.buffer.read(32769)
+        if len(raw) > 32768:
+            raise RuntimeError('Artifact envelope too large')
+        envelope = json.loads(raw)
+        if not isinstance(envelope, dict):
+            raise RuntimeError('Invalid artifact envelope')
     with open('/run/lock/kaisource-deploy.lock', 'w') as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
-        deploy(match[1])
+        deploy(match[2], envelope)
 
 
 if __name__ == '__main__':

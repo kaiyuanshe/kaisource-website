@@ -65,8 +65,13 @@ changing the serving application. Install a dedicated public key for
 restrict,command="sudo -n /usr/local/sbin/kaisource-ci-release" ssh-ed25519 <dedicated public key>
 ```
 
-The root-owned entry point accepts only `deploy <40-character commit SHA>` or
-`status`. It cannot run arbitrary SSH commands or port forwarding. Source
+The root-owned entry point accepts only `deploy <40-character commit SHA>`,
+`deploy-fetch <40-character commit SHA>` or `status`. CI sends a short-lived
+GitHub artifact URL through SSH stdin. The server downloads over HTTPS from
+GitHub's allowlisted artifact storage, verifies the GitHub SHA256 digest, then
+opens only the expected release archive. Redirects and other download hosts are
+refused. This avoids sending a large archive over an unreliable cross-border SSH
+connection. The entry point cannot run arbitrary commands or port forwarding. Source
 archives are checked for traversal, links, environment files and build state.
 Uploads never replace a current release. The frontend is installed and built as
 the unprivileged application user using `/etc/kaisource/build.env`.

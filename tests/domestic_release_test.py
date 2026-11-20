@@ -1,10 +1,12 @@
 """Exercise the archive trust boundary before a CI key can publish a release."""
 import importlib.util
 import io
+import hashlib
 from pathlib import Path
 import tarfile
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 from subprocess import CompletedProcess
 
@@ -75,6 +77,42 @@ class NginxCutover(unittest.TestCase):
         with patch.object(release.subprocess, 'run', return_value=CompletedProcess([], 0, b'{"revision":"previous"}')), patch.object(release.time, 'sleep'):
             with self.assertRaisesRegex(RuntimeError, 'not serving'):
                 release.public_revision(SHA)
+
+
+class SignedArtifactDownload(unittest.TestCase):
+    URL = 'https://productionresultssa8.blob.core.windows.net/actions-results/example/artifact.zip?signature=temporary'
+
+    def bundle(self, name='kaisource-release.tar.gz'):
+        result = io.BytesIO()
+        with zipfile.ZipFile(result, 'w') as archive:
+            archive.writestr(name, b'archive contents')
+        return result.getvalue()
+
+    def test_untrusted_download_hosts_are_rejected_before_network_access(self):
+        for url in ['http://127.0.0.1/x', 'https://productionresultssa8.blob.core.windows.net.evil.test/actions-results/x',
+                    'https://user@productionresultssa8.blob.core.windows.net/actions-results/x']:
+            with self.subTest(url=url), patch.object(release.urllib.request, 'build_opener') as network:
+                with self.assertRaisesRegex(RuntimeError, 'signed artifact storage'):
+                    release.fetch_artifact({'url': url, 'digest': 'sha256:' + SHA}, io.BytesIO())
+                network.assert_not_called()
+
+    def test_digest_and_zip_member_are_verified_before_source_is_used(self):
+        for name, wrong_digest in [('kaisource-release.tar.gz', False), ('../unexpected.tar.gz', False),
+                                    ('kaisource-release.tar.gz', True)]:
+            data = self.bundle(name)
+            response = io.BytesIO(data)
+            response.status = 200
+            output = io.BytesIO()
+            envelope = {'url': self.URL, 'digest': 'sha256:' + ('0' * 64 if wrong_digest else hashlib.sha256(data).hexdigest())}
+            with patch.object(release.urllib.request, 'build_opener') as network:
+                network.return_value.open.return_value = response
+                if name == 'kaisource-release.tar.gz' and not wrong_digest:
+                    release.fetch_artifact(envelope, output)
+                    self.assertEqual(output.getvalue(), b'archive contents')
+                else:
+                    with self.assertRaises(RuntimeError):
+                        release.fetch_artifact(envelope, output)
+                    self.assertEqual(output.getvalue(), b'')
 
 
 if __name__ == '__main__':
