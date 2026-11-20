@@ -74,7 +74,10 @@ async function changeProduction(target, deploymentId, rollback = false) {
   for (let i = 0; i < 60; i++) {
     const project = await api(target, `/v9/projects/${target.id}`);
     const request = project.lastAliasRequest;
-    if (project.targets?.production?.id === deploymentId && request?.toDeploymentId === deploymentId && request.jobStatus === 'succeeded') return;
+    // Synchronous promotions clear lastAliasRequest rather than keeping a
+    // succeeded job. The production target plus live alias probe is decisive.
+    if (project.targets?.production?.id === deploymentId && (!request ||
+      (request.toDeploymentId === deploymentId && request.jobStatus === 'succeeded'))) return;
     assert.ok(!(request?.toDeploymentId === deploymentId && ['failed', 'skipped'].includes(request.jobStatus)), 'Production alias update failed');
     await pause(3000);
   }
@@ -149,6 +152,7 @@ try {
     const project = await api(target, `/v9/projects/${target.id}`);
     assert.equal(project.targets?.production?.id, target.deployment.id);
     await probe(target, target.deployment, target.name === 'backend' ? '/healthz' : '/api/health');
+    if (target.name === 'backend') await probe(target, {url: 'kaiyuanshe-xi.vercel.app'}, '/healthz');
   }
   for (const origin of ['https://www.kaisource.org', 'https://kaisource-website-omega.vercel.app']) {
     const r = await fetch(origin + '/api/health', {signal: AbortSignal.timeout(30000), cache: 'no-store'});
