@@ -6,6 +6,13 @@
   padding: 2rem 1rem;
 }
 
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 2rem;
+}
+
 /* Enhanced header with floating elements and animations */
 .header {
   text-align: center;
@@ -29,7 +36,11 @@
   position: absolute;
   width: 120px;
   height: 120px;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(147, 51, 234, 0.05));
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.05),
+    rgba(147, 51, 234, 0.05)
+  );
   border-radius: 50%;
   animation: float 30s infinite linear;
 }
@@ -106,7 +117,6 @@
 }
 
 @keyframes pulse {
-
   0%,
   100% {
     transform: scale(1);
@@ -118,7 +128,6 @@
 }
 
 @keyframes sparkle {
-
   0%,
   100% {
     opacity: 1;
@@ -185,7 +194,6 @@
     padding: 0.4rem 1.2rem;
   }
 }
-
 
 .subtitle {
   display: flex;
@@ -357,7 +365,12 @@
   left: -50%;
   width: 200%;
   height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(59, 130, 246, 0.1), transparent);
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(59, 130, 246, 0.1),
+    transparent
+  );
   transform: rotate(45deg);
   transition: all 0.6s ease;
   opacity: 0;
@@ -498,14 +511,14 @@
   font-size: 14px;
   line-height: 1.4;
   color: #666;
-  
+
   /* 多行文本省略 */
   display: -webkit-box;
   -webkit-line-clamp: 2; /* 限制显示2行 */
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  
+
   /* 兼容其他浏览器 */
   max-height: 2.8em; /* line-height * 行数 */
 }
@@ -577,7 +590,11 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.05) 0%, rgba(147, 51, 234, 0.05) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.05) 0%,
+    rgba(147, 51, 234, 0.05) 100%
+  );
   z-index: 1;
 }
 
@@ -600,7 +617,6 @@
   color: white;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
 }
-
 
 .actionTitle {
   font-size: 2rem;
@@ -811,7 +827,6 @@
   }
 }
 
-
 .sectionHeader {
   display: flex;
   justify-content: center;
@@ -856,7 +871,6 @@
 .addCommunityButton:active {
   transform: translateY(0) !important;
 }
-
 
 /* 卡片操作按钮 */
 .cardActions {

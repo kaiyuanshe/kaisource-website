@@ -24,6 +24,8 @@
   "最新": "Newest",
   "最早": "Oldest",
   "加载中...": "Loading...",
+  "加载活动失败": "Events could not be loaded.",
+  "重试": "Try again",
   "搜索": "Search",
   "卡片视图": "Card view",
   "列表视图": "List view",

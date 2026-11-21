@@ -1,5 +1,5 @@
 import type React from "react";
-import { Button, Popconfirm, Spin, message } from "antd";
+import { Button, Pagination, Popconfirm, Spin, message } from "antd";
 import {
   MapPin,
   Users,
@@ -11,19 +11,27 @@ import {
   Edit,
   Trash2,
 } from "lucide-react";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useRouter } from "next/router";
 import styles from "./index.module.css";
-import { getCommunities, Community, deleteCommunity } from "@/services/comunity";
+import {
+  getCommunities,
+  Community,
+  deleteCommunity,
+} from "@/services/comunity";
 import { useAuth } from "@/contexts/AuthContext";
 import LocalizedText from "@/components/LocalizedText";
 import { useTranslation } from "@/hooks/useTranslation";
 
 const CommunityPage: React.FC = () => {
-  const { translateText: translateUiText } = useTranslation();
+  const { locale, translateText: translateUiText } = useTranslation();
   const router = useRouter();
   const [cities, setCities] = useState<Community[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [total, setTotal] = useState(0);
+  const latestRequest = useRef(0);
   const [stats, setStats] = useState({
     cityCount: 0,
     developerCount: 0,
@@ -47,39 +55,38 @@ const CommunityPage: React.FC = () => {
       order_by?: "created_at" | "start_date";
       order?: "asc" | "desc";
     }) => {
+      const requestId = ++latestRequest.current;
       try {
         setLoading(true);
 
         const queryParams = {
           city: params?.city ?? "",
-          page: params?.page ?? 1,
-          page_size: params?.page_size ?? 50,
+          page: params?.page ?? currentPage,
+          page_size: params?.page_size ?? pageSize,
           order_by: params?.order_by ?? "created_at",
           order: params?.order ?? "desc",
+          locale,
         };
 
         const result = await getCommunities(queryParams);
+        if (requestId !== latestRequest.current) return;
 
         if (result.success && result.data) {
           // 使用接口返回的真实数据
           const communitiesData = result.data.communities || [];
-          console.log("社区数据:", communitiesData);
+          const totalCities = result.data.total ?? communitiesData.length;
+          setTotal(totalCities);
 
-          if (communitiesData.length === 0) {
-            message.info("暂无社区数据");
-            setCities([]);
-            setStats({
-              cityCount: 0,
-              developerCount: 0,
-              projectCount: 0,
-            });
+          // A deletion may remove the last row of the last page.
+          const lastPage = Math.max(1, Math.ceil(totalCities / pageSize));
+          if (currentPage > lastPage) {
+            setCurrentPage(lastPage);
             return;
           }
 
           setCities(communitiesData);
 
           // 更新统计数据 - 使用真实数据计算
-          const totalCities = communitiesData.length;
           setStats({
             cityCount: totalCities,
             developerCount: totalCities * 150,
@@ -91,6 +98,7 @@ const CommunityPage: React.FC = () => {
 
           // 可以在这里设置默认数据作为fallback
           setCities([]);
+          setTotal(0);
           setStats({
             cityCount: 0,
             developerCount: 0,
@@ -98,19 +106,21 @@ const CommunityPage: React.FC = () => {
           });
         }
       } catch (error: unknown) {
+        if (requestId !== latestRequest.current) return;
         console.error("加载社区列表异常:", error);
         message.error("获取社区数据失败");
         setCities([]);
+        setTotal(0);
         setStats({
           cityCount: 0,
           developerCount: 0,
           projectCount: 0,
         });
       } finally {
-        setLoading(false);
+        if (requestId === latestRequest.current) setLoading(false);
       }
     },
-    [],
+    [currentPage, pageSize, locale],
   );
   // 编辑城市
   const handleEditCity = (city: any) => {
@@ -137,6 +147,9 @@ const CommunityPage: React.FC = () => {
   // 从接口获取社区数据
   useEffect(() => {
     loadCommunities();
+    return () => {
+      latestRequest.current += 1;
+    };
   }, [loadCommunities]);
 
   const handleCreateCommunity = () => {
@@ -354,6 +367,20 @@ const CommunityPage: React.FC = () => {
               ))}
             </div>
           )}
+          <Pagination
+            className={styles.pagination}
+            current={currentPage}
+            pageSize={pageSize}
+            total={total}
+            hideOnSinglePage
+            responsive
+            showSizeChanger
+            pageSizeOptions={[12, 24, 48]}
+            onChange={(page, size) => {
+              setCurrentPage(size !== pageSize ? 1 : page);
+              setPageSize(size);
+            }}
+          />
         </div>
 
         <div className={styles.actionSection}>
