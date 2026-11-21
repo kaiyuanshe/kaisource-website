@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Pagination,
   Input,
@@ -45,7 +45,7 @@ export function formatTime(isoTime: string): string {
 }
 
 export default function EventsPage() {
-  const { translateText: translateUiText } = useTranslation();
+  const { translateText: translateUiText, locale } = useTranslation();
   const { message } = AntdApp.useApp();
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,6 +58,7 @@ export default function EventsPage() {
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
   const [wechatModalVisible, setWechatModalVisible] = useState(false);
   const [publishStatus, setPublishStatus] = useState(2);
+  const latestRequest = useRef(0);
 
   const router = useRouter();
   const { session, status } = useAuth();
@@ -69,7 +70,6 @@ export default function EventsPage() {
   // 新增筛选状态
   const [locationKeyword, setLocationKeyword] = useState("");
   const [eventModeFilter, setEventModeFilter] = useState("");
-  const [eventTypeFilter] = useState("community"); // 社区活动
 
   // 加载事件列表
   const loadEvents = useCallback(
@@ -81,32 +81,33 @@ export default function EventsPage() {
       page_size?: number;
       location?: string;
       event_mode?: string;
-      event_type?: string;
       publish_status?: number;
     }) => {
+      const requestId = ++latestRequest.current;
       try {
         setLoading(true);
 
         const queryParams = {
-          keyword: params?.keyword || searchKeyword,
-          tag: params?.tag || selectedTag,
-          order: params?.order || sortOrder,
-          page: params?.page || currentPage,
-          page_size: params?.page_size || pageSize,
-          location: params?.location || locationKeyword,
-          event_mode: params?.event_mode || eventModeFilter,
-          event_type: params?.event_type || eventTypeFilter,
-          publish_status: params?.publish_status || publishStatus,
+          keyword: params?.keyword ?? searchKeyword,
+          tag: params?.tag ?? selectedTag,
+          order: params?.order ?? sortOrder,
+          page: params?.page ?? currentPage,
+          page_size: params?.page_size ?? pageSize,
+          location: params?.location ?? locationKeyword,
+          event_mode: params?.event_mode ?? eventModeFilter,
+          // This is the all-events page linked from the homepage. Only the
+          // dedicated COSCon page should restrict the event category.
+          publish_status: params?.publish_status ?? publishStatus,
+          locale,
         };
 
         const result = await getEvents(queryParams);
+        if (requestId !== latestRequest.current) return;
 
         if (result.success && result.data) {
           if (result.data.events && Array.isArray(result.data.events)) {
             setEvents(result.data.events);
-            setCurrentPage(result.data.page || 1);
-            setPageSize(result.data.page_size || 6);
-            setTotal(result.data.total || result.data.events.length);
+            setTotal(result.data.total ?? result.data.events.length);
           } else if (Array.isArray(result.data)) {
             setEvents(result.data);
             setTotal(result.data.length);
@@ -121,11 +122,12 @@ export default function EventsPage() {
           setTotal(0);
         }
       } catch (error: unknown) {
+        if (requestId !== latestRequest.current) return;
         console.error("加载事件列表异常:", error);
         setEvents([]);
         setTotal(0);
       } finally {
-        setLoading(false);
+        if (requestId === latestRequest.current) setLoading(false);
       }
     },
     [
@@ -136,8 +138,8 @@ export default function EventsPage() {
       pageSize,
       locationKeyword,
       eventModeFilter,
-      eventTypeFilter,
       publishStatus,
+      locale,
     ],
   );
 
@@ -155,6 +157,9 @@ export default function EventsPage() {
     if (!router.isReady) return;
 
     loadEvents();
+    return () => {
+      latestRequest.current += 1;
+    };
   }, [
     searchKeyword,
     selectedTag,
@@ -163,7 +168,6 @@ export default function EventsPage() {
     pageSize,
     locationKeyword,
     eventModeFilter,
-    eventTypeFilter,
     publishStatus,
     loadEvents,
     router.isReady,
@@ -251,7 +255,7 @@ export default function EventsPage() {
           </div>
           {permissions.includes("event:write") && (
             <Link
-              href={`/events/new?event_type=${eventTypeFilter}`}
+              href="/events/new?event_type=community"
               className={styles.createButton}
             >
               <Plus size={20} />
@@ -270,7 +274,7 @@ export default function EventsPage() {
             size="large"
             enterButton={translateUiText("搜索")}
             value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             onSearch={handleSearch}
             onClear={() => handleSearch("")}
             loading={loading}
@@ -316,7 +320,7 @@ export default function EventsPage() {
               placeholder={translateUiText("活动地点")}
               allowClear
               value={locationKeyword}
-              onChange={(e) => setLocationKeyword(e.target.value)}
+              onChange={(e) => handleLocationSearch(e.target.value)}
               onPressEnter={() => handleLocationSearch(locationKeyword)}
             />
           </div>
@@ -372,11 +376,7 @@ export default function EventsPage() {
             <LocalizedText>{"暂无活动"}</LocalizedText>
           </div>
           <div className={styles.emptyDescription}>
-            {searchKeyword ||
-            selectedTag ||
-            locationKeyword ||
-            eventModeFilter ||
-            eventTypeFilter
+            {searchKeyword || selectedTag || locationKeyword || eventModeFilter
               ? translateUiText("没有找到符合条件的活动")
               : translateUiText("还没有创建任何活动")}
           </div>
@@ -384,10 +384,9 @@ export default function EventsPage() {
             !selectedTag &&
             !locationKeyword &&
             !eventModeFilter &&
-            !eventTypeFilter &&
             permissions.includes("event:write") && (
               <Link
-                href={`/events/new?event_type=${eventTypeFilter}`}
+                href="/events/new?event_type=community"
                 className={styles.createButton}
               >
                 <Plus className={styles.buttonIcon} />
@@ -399,7 +398,21 @@ export default function EventsPage() {
         <div className={styles.eventsGrid}>
           {events.map((event) => (
             <Link
-              href={`/events/${event.ID}`}
+              href={
+                event.event_setting === 2 && event.bage_link
+                  ? event.bage_link
+                  : `/events/${event.ID}`
+              }
+              target={
+                event.event_setting === 2 && event.bage_link
+                  ? "_blank"
+                  : undefined
+              }
+              rel={
+                event.event_setting === 2 && event.bage_link
+                  ? "noopener noreferrer"
+                  : undefined
+              }
               key={event.ID}
               className={styles.cardLink}
             >
@@ -426,7 +439,7 @@ export default function EventsPage() {
                             onClick={(e) => {
                               e.preventDefault();
                               router.push(
-                                `/events/${event.ID}/edit?event_type=${eventTypeFilter}`,
+                                `/events/${event.ID}/edit?event_type=${encodeURIComponent(event.event_type || "community")}`,
                               );
                             }}
                             icon={<Edit className={styles.actionIcon} />}
@@ -570,7 +583,21 @@ export default function EventsPage() {
                     className={`${styles.eventTitleRow} ${styles.nameColumn}`}
                   >
                     <Link
-                      href={`/events/${event.ID}`}
+                      href={
+                        event.event_setting === 2 && event.bage_link
+                          ? event.bage_link
+                          : `/events/${event.ID}`
+                      }
+                      target={
+                        event.event_setting === 2 && event.bage_link
+                          ? "_blank"
+                          : undefined
+                      }
+                      rel={
+                        event.event_setting === 2 && event.bage_link
+                          ? "noopener noreferrer"
+                          : undefined
+                      }
                       key={event.ID}
                       className={styles.listLink}
                     >
@@ -637,7 +664,7 @@ export default function EventsPage() {
                         title={translateUiText("编辑活动")}
                         onClick={() =>
                           router.push(
-                            `/events/${event.ID}/edit?event_type=${eventTypeFilter}`,
+                            `/events/${event.ID}/edit?event_type=${encodeURIComponent(event.event_type || "community")}`,
                           )
                         }
                       />
