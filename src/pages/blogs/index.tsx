@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Pagination,
   Input,
@@ -55,11 +55,13 @@ export default function BlogsPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [searchKeyword, setSearchKeyword] = useState("");
+  const [activeKeyword, setActiveKeyword] = useState("");
   const [selectedTag] = useState("");
   const [sortOrder] = useState<"asc" | "desc">("desc");
   const [wechatModalVisible, setWechatModalVisible] = useState(false);
   const [publishStatus, setPublishStatus] = useState(2);
   const [category] = useState("blog");
+  const latestRequest = useRef(0);
 
   // 认证上下文
   const { session, status } = useAuth();
@@ -68,12 +70,20 @@ export default function BlogsPage() {
     [session?.user?.permissions],
   );
   const { message } = AntdApp.useApp();
+  const newPublishStatus =
+    status === "authenticated" &&
+    (permissions.includes("article:write") ||
+      permissions.includes("article:review"))
+      ? 0
+      : 2;
 
   // 从 URL 参数初始化 searchKeyword
   useEffect(() => {
-    if (isReady && query.keyword) {
-      setSearchKeyword(query.keyword as string);
-    }
+    if (!isReady) return;
+    const keyword = typeof query.keyword === "string" ? query.keyword : "";
+    setSearchKeyword(keyword);
+    setActiveKeyword(keyword);
+    setCurrentPage(1);
   }, [isReady, query.keyword]);
 
   // 加载博客列表 - 使用 useMemo 避免不必要的重新创建
@@ -86,12 +96,13 @@ export default function BlogsPage() {
       page_size?: number;
       publish_status?: number;
     }) => {
+      const requestId = ++latestRequest.current;
       try {
         setLoading(true);
 
         // 使用传入的参数或当前状态
         const actualKeyword =
-          params?.keyword !== undefined ? params.keyword : searchKeyword;
+          params?.keyword !== undefined ? params.keyword : activeKeyword;
         const actualPage =
           params?.page !== undefined ? params.page : currentPage;
         const actualPageSize =
@@ -109,17 +120,15 @@ export default function BlogsPage() {
           page_size: actualPageSize,
           publish_status: actualPublishStatus,
           category: category,
+          locale,
         };
 
-        console.log("加载文章参数:", queryParams);
-
         const result = await getArticles(queryParams);
+        if (requestId !== latestRequest.current) return;
         if (result.success && result.data) {
           if (result.data.articles && Array.isArray(result.data.articles)) {
             setArticles(result.data.articles);
-            setCurrentPage(result.data.page || 1);
-            setPageSize(result.data.page_size || 6);
-            setTotal(result.data.total || result.data.articles.length);
+            setTotal(result.data.total ?? result.data.articles.length);
           } else if (Array.isArray(result.data)) {
             setArticles(result.data);
             setTotal(result.data.length);
@@ -134,29 +143,31 @@ export default function BlogsPage() {
           setTotal(0);
         }
       } catch (error: unknown) {
+        if (requestId !== latestRequest.current) return;
         console.error("加载博客列表异常:", error);
         setArticles([]);
         setTotal(0);
       } finally {
-        setLoading(false);
+        if (requestId === latestRequest.current) setLoading(false);
       }
     },
     [
-      searchKeyword,
+      activeKeyword,
       selectedTag,
       sortOrder,
       currentPage,
       pageSize,
       publishStatus,
       category,
+      locale,
     ],
   );
 
   // 搜索博客 - 更新 URL 和状态
   const handleSearch = useCallback(
     async (keyword: string) => {
-      console.log("执行搜索:", keyword);
       setSearchKeyword(keyword);
+      setActiveKeyword(keyword);
       setCurrentPage(1);
 
       // 更新 URL 查询参数
@@ -175,10 +186,8 @@ export default function BlogsPage() {
         undefined,
         { shallow: true },
       );
-
-      await loadArticles({ keyword, page: 1 });
     },
-    [router, loadArticles],
+    [router],
   );
 
   // 处理输入框变化
@@ -196,20 +205,18 @@ export default function BlogsPage() {
 
   // 分页处理
   const handlePageChange = useCallback(
-    async (page: number, size?: number) => {
-      setCurrentPage(page);
+    (page: number, size?: number) => {
+      setCurrentPage(size && size !== pageSize ? 1 : page);
       if (size && size !== pageSize) {
         setPageSize(size);
       }
-      await loadArticles({ page, page_size: size || pageSize });
     },
-    [loadArticles, pageSize],
+    [pageSize],
   );
 
   // 切换视图模式
   const handleSwitchViewMode = useCallback((mode: ViewMode) => {
     setViewMode(mode);
-    setCurrentPage(1);
   }, []);
 
   // 删除博客
@@ -219,7 +226,9 @@ export default function BlogsPage() {
         const result = await deleteArticle(id);
         if (result.success) {
           message.success(result.message);
-          loadArticles();
+          if (articles.length === 1 && currentPage > 1)
+            setCurrentPage(currentPage - 1);
+          else loadArticles();
         } else {
           message.error(result.message || "删除博客失败");
         }
@@ -227,58 +236,24 @@ export default function BlogsPage() {
         message.error("删除失败，请重试");
       }
     },
-    [loadArticles, message],
+    [loadArticles, message, articles.length, currentPage],
   );
 
-  // 监听 URL 参数变化并自动搜索
   useEffect(() => {
-    if (isReady) {
-      const { keyword } = query;
-      console.log("URL 参数变化:", keyword);
-
-      if (keyword && keyword !== searchKeyword) {
-        // URL 中有 keyword 参数，执行搜索
-        loadArticles({ keyword: keyword as string, page: 1 });
-      } else if (!keyword && searchKeyword) {
-        // URL 中没有 keyword 但状态中有，清空搜索
-        setSearchKeyword("");
-        loadArticles({ keyword: "", page: 1 });
-      }
-    }
-  }, [isReady, query.keyword]); // 移除 searchKeyword 和 loadArticles 依赖
-
-  // 认证状态变化时加载数据
-  useEffect(() => {
-    if (status === "loading") return;
-
-    const newPublishStatus =
-      status === "authenticated" &&
-      (permissions.includes("article:write") || permissions.includes("article:review")) ? 0 : 2;
-
-    console.log("认证状态变化，发布状态:", newPublishStatus);
     setPublishStatus(newPublishStatus);
+  }, [newPublishStatus]);
 
-    // 如果 URL 中有搜索参数，使用 URL 参数
-    if (isReady && query.keyword) {
-      loadArticles({
-        keyword: query.keyword as string,
-        publish_status: newPublishStatus,
-      });
-    } else {
-      loadArticles({ publish_status: newPublishStatus });
-    }
-  }, [status, permissions, isReady, query.keyword]);
-
-  // 初始加载
   useEffect(() => {
-    if (isReady && status !== "loading") {
-      console.log("初始加载数据");
-      loadArticles();
-    }
-  }, [isReady, status]);
+    if (!isReady || status === "loading" || publishStatus !== newPublishStatus)
+      return;
+    loadArticles();
+    return () => {
+      latestRequest.current += 1;
+    };
+  }, [isReady, status, publishStatus, newPublishStatus, loadArticles]);
 
   // 计算显示范围
-  const startIndex = (currentPage - 1) * pageSize + 1;
+  const startIndex = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const endIndex = Math.min(currentPage * pageSize, total);
   const currentArticles = articles;
 

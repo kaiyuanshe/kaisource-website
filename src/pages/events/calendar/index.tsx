@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import Image from "next/image";
 import {
   Calendar,
@@ -11,6 +17,8 @@ import {
   Drawer,
   Space,
   Empty,
+  Spin,
+  Alert,
 } from "antd";
 import {
   Calendar as CalendarIcon,
@@ -39,10 +47,15 @@ interface EventsByDate {
 }
 
 const EventsCalendar: React.FC = () => {
-  const { translateText: translateUiText } = useTranslation();
+  const { locale, translateText: translateUiText } = useTranslation();
   const [events, setEvents] = useState<Event[]>([]);
   const [eventsByDate, setEventsByDate] = useState<EventsByDate>({});
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs());
+  const [panelDate, setPanelDate] = useState<Dayjs>(dayjs());
+  const [calendarMode, setCalendarMode] = useState<"month" | "year">("month");
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const latestRequest = useRef(0);
   const [selectedEvents, setSelectedEvents] = useState<Event[]>([]);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -55,54 +68,67 @@ const EventsCalendar: React.FC = () => {
     [session?.user?.permissions],
   );
 
-  // 加载事件数据 - 优化为按日期范围查询
-  const loadEvents = useCallback(
-    async (currentDate?: Dayjs) => {
-      try {
-        const targetDate = currentDate || selectedDate;
-        // 获取当前月份的开始和结束日期
-        const startOfMonth = targetDate.startOf("month").format("YYYY-MM-DD");
-        const endOfMonth = targetDate.endOf("month").format("YYYY-MM-DD");
+  const rangeStart = panelDate.startOf(calendarMode).format("YYYY-MM-DD");
+  const rangeEnd = panelDate.endOf(calendarMode).format("YYYY-MM-DD");
 
-        const result = await getEvents({
-          page: 1,
-          page_size: 1000,
-          publish_status:
-            status === "authenticated" && permissions.includes("event:review")
-              ? 0
-              : 2,
-          // status: 2,
-          start_date: startOfMonth,
-          end_date: endOfMonth,
+  // Query the range shown by the panel, independently of the drawer's date.
+  const loadEvents = useCallback(async () => {
+    const requestId = ++latestRequest.current;
+    try {
+      setLoading(true);
+      setLoadError(false);
+      setEvents([]);
+      setEventsByDate({});
+
+      const result = await getEvents({
+        page: 1,
+        page_size: 1000,
+        publish_status:
+          status === "authenticated" && permissions.includes("event:review")
+            ? 0
+            : 2,
+        status: 3,
+        start_date: rangeStart,
+        end_date: rangeEnd,
+        locale,
+      });
+      if (requestId !== latestRequest.current) return;
+
+      if (result.success && result.data) {
+        const eventsData: Event[] = Array.isArray(result.data)
+          ? result.data
+          : result.data.events || [];
+
+        setEvents(eventsData);
+
+        // 按日期组织事件
+        const eventsByDateMap: EventsByDate = {};
+        eventsData.forEach((event: Event) => {
+          const dateKey = dayjs(event.start_time).format("YYYY-MM-DD");
+          if (!eventsByDateMap[dateKey]) {
+            eventsByDateMap[dateKey] = [];
+          }
+          eventsByDateMap[dateKey].push(event);
         });
-
-        if (result.success && result.data) {
-          const eventsData: any = Array.isArray(result.data)
-            ? result.data
-            : result.data.events || [];
-
-          setEvents(eventsData);
-
-          // 按日期组织事件
-          const eventsByDateMap: EventsByDate = {};
-          eventsData.forEach((event: Event) => {
-            const dateKey = dayjs(event.start_time).format("YYYY-MM-DD");
-            if (!eventsByDateMap[dateKey]) {
-              eventsByDateMap[dateKey] = [];
-            }
-            eventsByDateMap[dateKey].push(event);
-          });
-          setEventsByDate(eventsByDateMap);
-        }
-      } catch (error) {
-        console.error("加载事件失败:", error);
+        setEventsByDate(eventsByDateMap);
+      } else {
+        setLoadError(true);
       }
-    },
-    [status, permissions, selectedDate],
-  );
+    } catch (error) {
+      if (requestId !== latestRequest.current) return;
+      console.error("加载事件失败:", error);
+      setLoadError(true);
+    } finally {
+      if (requestId === latestRequest.current) setLoading(false);
+    }
+  }, [status, permissions, rangeStart, rangeEnd, locale]);
 
   useEffect(() => {
+    if (status === "loading") return;
     loadEvents();
+    return () => {
+      latestRequest.current += 1;
+    };
   }, [status, loadEvents]);
 
   // 获取事件状态颜色类名
@@ -213,33 +239,47 @@ const EventsCalendar: React.FC = () => {
 
         {/* 日历主体 */}
         <div className={styles.calendar}>
-          <Calendar
-            cellRender={(current, info) => {
-              if (info.type === "date") {
-                return dateCellRender(current);
+          {loadError && (
+            <Alert
+              type="error"
+              title={translateUiText("加载活动失败")}
+              action={
+                <Button onClick={() => loadEvents()}>
+                  {translateUiText("重试")}
+                </Button>
               }
-              if (info.type === "month") {
-                return monthCellRender(current);
-              }
-              return info.originNode;
-            }}
-            onSelect={(date) => {
-              const dateKey = date.format("YYYY-MM-DD");
-              const dayEvents = eventsByDate[dateKey] || [];
-              if (dayEvents.length > 0) {
-                setSelectedDate(date);
-                setSelectedEvents(dayEvents);
-                setDrawerVisible(true);
-              }
-            }}
-            onPanelChange={(date, mode) => {
-              // 当切换月份或年份时，重新加载当前月份的数据
-              if (mode === "month") {
-                setSelectedDate(date);
-                loadEvents(date);
-              }
-            }}
-          />
+            />
+          )}
+          <Spin spinning={loading}>
+            <Calendar
+              value={panelDate}
+              mode={calendarMode}
+              cellRender={(current, info) => {
+                if (info.type === "date") {
+                  return dateCellRender(current);
+                }
+                if (info.type === "month") {
+                  return monthCellRender(current);
+                }
+                return info.originNode;
+              }}
+              onSelect={(date, info) => {
+                setPanelDate(date);
+                if (info.source !== "date") return;
+                const dateKey = date.format("YYYY-MM-DD");
+                const dayEvents = eventsByDate[dateKey] || [];
+                if (dayEvents.length > 0) {
+                  setSelectedDate(date);
+                  setSelectedEvents(dayEvents);
+                  setDrawerVisible(true);
+                }
+              }}
+              onPanelChange={(date, mode) => {
+                setPanelDate(date);
+                setCalendarMode(mode);
+              }}
+            />
+          </Spin>
         </div>
 
         {/* 某日活动列表抽屉 */}

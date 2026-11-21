@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Pagination,
   Input,
@@ -40,7 +40,7 @@ export function formatTime(isoTime: string): string {
 }
 
 export default function AnnouncementPage() {
-  const { translateText: translateUiText } = useTranslation();
+  const { locale, translateText: translateUiText } = useTranslation();
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6);
@@ -53,6 +53,7 @@ export default function AnnouncementPage() {
   const [wechatModalVisible, setWechatModalVisible] = useState(false);
   const [publishStatus, setPublishStatus] = useState(2);
   const [category] = useState("announcement");
+  const latestRequest = useRef(0);
 
   // 使用统一的认证上下文，避免重复调用 useSession
   const { session, status } = useAuth();
@@ -63,6 +64,12 @@ export default function AnnouncementPage() {
   );
 
   const { message } = AntdApp.useApp();
+  const newPublishStatus =
+    status === "authenticated" &&
+    (permissions.includes("article:write") ||
+      permissions.includes("article:review"))
+      ? 0
+      : 2;
 
   // 加载公告列表
   const loadArticles = useCallback(
@@ -75,6 +82,7 @@ export default function AnnouncementPage() {
       publish_status?: number;
       category?: string;
     }) => {
+      const requestId = ++latestRequest.current;
       try {
         setLoading(true);
 
@@ -86,17 +94,16 @@ export default function AnnouncementPage() {
           page_size: params?.page_size ?? pageSize,
           publish_status: params?.publish_status ?? publishStatus,
           category: params?.category ?? category,
+          locale,
         };
 
         const result = await getArticles(queryParams);
+        if (requestId !== latestRequest.current) return;
         if (result.success && result.data) {
           // 处理后端返回的数据结构
           if (result.data.articles && Array.isArray(result.data.articles)) {
-            console.log(result.data.articles);
             setArticles(result.data.articles);
-            setCurrentPage(result.data.page || 1);
-            setPageSize(result.data.page_size || 6);
-            setTotal(result.data.total || result.data.articles.length);
+            setTotal(result.data.total ?? result.data.articles.length);
           } else if (Array.isArray(result.data)) {
             setArticles(result.data);
             setTotal(result.data.length);
@@ -111,11 +118,12 @@ export default function AnnouncementPage() {
           setTotal(0);
         }
       } catch (error: unknown) {
+        if (requestId !== latestRequest.current) return;
         console.error("加载公告列表异常:", error);
         setArticles([]);
         setTotal(0);
       } finally {
-        setLoading(false);
+        if (requestId === latestRequest.current) setLoading(false);
       }
     },
     [
@@ -125,27 +133,27 @@ export default function AnnouncementPage() {
       currentPage,
       pageSize,
       publishStatus,
+      category,
+      locale,
     ],
   );
 
   // 搜索公告
-  const handleSearch = async (keyword: string) => {
+  const handleSearch = (keyword: string) => {
     setSearchKeyword(keyword);
-    setCurrentPage(1); // 重置到第一页
-    await loadArticles({ keyword, page: 1 });
+    setCurrentPage(1);
   };
 
   // 分页处理
-  const handlePageChange = async (page: number, size?: number) => {
-    setCurrentPage(page);
+  const handlePageChange = (page: number, size?: number) => {
+    setCurrentPage(size && size !== pageSize ? 1 : page);
     if (size && size !== pageSize) {
       setPageSize(size);
     }
-    await loadArticles({ page, page_size: size || pageSize });
   };
 
   // 计算当前显示的公告
-  const startIndex = (currentPage - 1) * pageSize + 1;
+  const startIndex = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
   const endIndex = Math.min(currentPage * pageSize, total);
 
   const currentArticles = articles; // 服务端已经处理了分页
@@ -156,7 +164,9 @@ export default function AnnouncementPage() {
       const result = await deleteArticle(id);
       if (result.success) {
         message.success(result.message);
-        loadArticles();
+        if (articles.length === 1 && currentPage > 1)
+          setCurrentPage(currentPage - 1);
+        else loadArticles();
       } else {
         message.error(result.message || "发布公告失败");
       }
@@ -167,19 +177,19 @@ export default function AnnouncementPage() {
 
   const handleSwitchViewMode = (mode: ViewMode) => {
     setViewMode(mode);
-    setCurrentPage(1);
   };
 
   useEffect(() => {
-    if (status === "loading") return; // 等待认证状态确定
-    const newPublishStatus =
-      status === "authenticated" &&
-      (permissions.includes("article:write") || permissions.includes("article:review")) ? 0 : 2;
     setPublishStatus(newPublishStatus);
+  }, [newPublishStatus]);
 
-    // 直接调用 loadarticles，避免 publishStatus 状态更新延迟
-    loadArticles({ publish_status: newPublishStatus });
-  }, [status, permissions.length, loadArticles, permissions]);
+  useEffect(() => {
+    if (status === "loading" || publishStatus !== newPublishStatus) return;
+    loadArticles();
+    return () => {
+      latestRequest.current += 1;
+    };
+  }, [status, publishStatus, newPublishStatus, loadArticles]);
 
   return (
     <div className={`${styles.container} nav-t-top`}>
@@ -209,7 +219,7 @@ export default function AnnouncementPage() {
             size="large"
             enterButton={translateUiText("搜索")}
             value={searchKeyword}
-            onChange={(e) => setSearchKeyword(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             onSearch={handleSearch}
             onClear={() => handleSearch("")}
             loading={loading}
