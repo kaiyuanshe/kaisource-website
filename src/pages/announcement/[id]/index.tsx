@@ -42,7 +42,7 @@ export default function ArticleDetailPage() {
 
   const permissions = session?.user?.permissions || [];
   const canReview =
-    status === "authenticated" && permissions.includes("event:review");
+    status === "authenticated" && permissions.includes("article:review");
 
   // parseMarkdown将返回的markdown转为html展示
   const [articleContent, setArticleContent] = useState<string>("");
