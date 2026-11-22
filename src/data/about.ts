@@ -12,7 +12,7 @@ export interface TimelineItem {
 }
 
 export interface Honor {
-  image: string;
+  icon: 'globe' | 'community' | 'license' | 'public-good' | 'conference' | 'dialogue';
   title: string;
   date: string;
   description: string;
@@ -117,37 +117,37 @@ export const timelineData: TimelineItem[] = [
 // 荣誉墙数据
 export const honorsData: Honor[] = [
   {
-    image: "/img/about/honor-osi.webp",
+    icon: "globe",
     title: "OSI首家中国成员",
     date: "2016年1月",
     description: "开源社加入Open Source Initiative(OSI)，成为OSI联盟的首家中国成员"
   },
   {
-    image: "/img/about/honor-community.webp", 
+    icon: "community",
     title: "年度开源社区",
     date: "2023年",
     description: "获选'开源创新榜单-年度开源社区'，由中国科协科学技术传播中心等联合评选"
   },
   {
-    image: "/img/about/honor-mulan.webp",
+    icon: "license",
     title: "木兰许可证通过OSI认证",
     date: "2020年",
     description: "推动木兰宽松许可证MulanPSL v2通过OSI认证，被批准为国际类别开源许可证"
   },
   {
-    image: "/img/about/honor-opengood.webp",
+    icon: "public-good",
     title: "中国开放科学优秀行动",
     date: "2024年",
     description: "OpenGood开源公益行动获评'2024年中国开放科学优秀行动'"
   },
   {
-    image: "/img/about/honor-coscon.webp",
+    icon: "conference",
     title: "最受开发者欢迎技术活动",
     date: "连续多年",
     description: "COSCon中国开源年会连续多年荣获思否评选的'中国最受开发者欢迎的技术活动'"
   },
   {
-    image: "/img/about/honor-sovereign-ai.webp",
+    icon: "dialogue",
     title: "主权AI圆桌亚太区代表",
     date: "2025年",
     description: "受邀作为Linux基金会'主权AI圆桌'的亚太区代表，参与国际议题对话"

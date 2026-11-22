@@ -1,8 +1,25 @@
 import React, { useState, useEffect } from "react";
+import {
+  Globe,
+  UsersRound,
+  FileCheck2,
+  HandHeart,
+  CalendarDays,
+  MessagesSquare,
+} from "lucide-react";
 import styles from "./index.module.css";
 import { heroImages, timelineData, honorsData } from "@/data/about";
 import LocalizedText from "@/components/LocalizedText";
 import { useTranslation } from "@/hooks/useTranslation";
+
+const honorIcons = {
+  globe: Globe,
+  community: UsersRound,
+  license: FileCheck2,
+  "public-good": HandHeart,
+  conference: CalendarDays,
+  dialogue: MessagesSquare,
+};
 
 const AboutPage = () => {
   const { translateText: translateUiText } = useTranslation();
@@ -828,29 +845,30 @@ const AboutPage = () => {
                     transform: `translateX(-${currentHonorIndex * (100 / itemsToShow)}%)`,
                   }}
                 >
-                  {honorsData.map((honor, index) => (
-                    <div key={index} className={styles.honorCard}>
-                      <div className={styles.honorImageContainer}>
-                        <img
-                          src={honor.image}
-                          alt={honor.title}
-                          className={styles.honorImage}
-                          onClick={() => openModal(honor.image, honor.title)}
-                        />
-                      </div>
-                      <div className={styles.honorContent}>
-                        <h4 className={styles.honorTitle}>
-                          {translateText(honor.title)}
-                        </h4>
-                        <div className={styles.honorDate}>
-                          {translateText(honor.date)}
+                  {honorsData.map((honor, index) => {
+                    const Icon = honorIcons[honor.icon];
+                    return (
+                      <div key={index} className={styles.honorCard}>
+                        <div className={styles.honorVisual} aria-hidden="true">
+                          <Icon
+                            className={styles.honorIcon}
+                            strokeWidth={1.5}
+                          />
                         </div>
-                        <p className={styles.honorDescription}>
-                          {translateText(honor.description)}
-                        </p>
+                        <div className={styles.honorContent}>
+                          <h4 className={styles.honorTitle}>
+                            {translateText(honor.title)}
+                          </h4>
+                          <div className={styles.honorDate}>
+                            {translateText(honor.date)}
+                          </div>
+                          <p className={styles.honorDescription}>
+                            {translateText(honor.description)}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 

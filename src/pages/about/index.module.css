@@ -843,10 +843,6 @@
     min-width: 160px;
   }
   
-  .honorImageContainer {
-    height: 100px;
-  }
-
   .honorContent {
     padding: 0.75rem;
   }
@@ -1009,10 +1005,6 @@
     margin: 0 auto;
   }
   
-  .honorImageContainer {
-    height: 80px;
-  }
-
   .honorContent {
     padding: 0.5rem;
   }
@@ -1394,24 +1386,18 @@
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
 }
 
-.honorImageContainer {
-  position: relative;
-  height: 150px;
-  overflow: hidden;
-  background: #f8f9fa;
+.honorVisual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(80px, 12vw, 150px);
+  background: #f1f7fb;
+  color: #2980b9;
 }
 
-.honorImage {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  cursor: pointer;
-  transition: transform 0.3s ease;
-}
-
-.honorImage:hover {
-  transform: scale(1.05);
+.honorIcon {
+  width: clamp(32px, 5vw, 48px);
+  height: clamp(32px, 5vw, 48px);
 }
 
 .honorContent {
