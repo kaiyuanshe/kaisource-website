@@ -21,9 +21,9 @@
     "i18n:generate": "node scripts/generate-initial-translations.mjs",
     "i18n:localize-jsx": "node scripts/localize-visible-jsx.mjs",
     "i18n:localize-attributes": "node scripts/localize-jsx-attributes.mjs",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "lint:watch": "eslint . --watch"
+    "lint": "eslint src",
+    "lint:fix": "eslint src --fix",
+    "lint:watch": "eslint src --watch"
   },
   "dependencies": {
     "@ant-design/cssinjs": "^2.2.0",
