@@ -33,12 +33,12 @@ export default function VolunteerPage() {
       <div className={styles.contentWrapper}>
         <div className={styles.titleSection}>
           <h1 className={styles.title}>
-            <LocalizedText>{"年度优秀志愿者"}</LocalizedText>
+            <LocalizedText>{"年度优秀贡献者"}</LocalizedText>
           </h1>
           <p className={styles.subtitle}>
             <LocalizedText>
               {
-                "致敬那些为开源社区无私奉献的优秀志愿者们，他们的付出推动着开源精神的传承与发展"
+                "致敬那些为开源社区无私奉献的优秀贡献者们，他们的付出推动着开源精神的传承与发展"
               }
             </LocalizedText>
           </p>
@@ -48,7 +48,7 @@ export default function VolunteerPage() {
           <div className={styles.statItem}>
             <div className={styles.statNumber}>{filteredVolunteers.length}</div>
             <div className={styles.statLabel}>
-              <LocalizedText>{"优秀志愿者"}</LocalizedText>
+              <LocalizedText>{"优秀贡献者"}</LocalizedText>
             </div>
           </div>
           <div className={styles.statItem}>

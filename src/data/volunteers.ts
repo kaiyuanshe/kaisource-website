@@ -13,7 +13,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '丁欣',
@@ -21,7 +21,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '刘天栋',
@@ -29,7 +29,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '刘智杰',
@@ -37,7 +37,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '廖敬仪',
@@ -45,7 +45,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '李佳欣',
@@ -53,7 +53,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '李思颖',
@@ -61,7 +61,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '李楠',
@@ -69,7 +69,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '段延星',
@@ -77,7 +77,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '王勇杰',
@@ -85,7 +85,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '臧鹏',
@@ -93,7 +93,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '赵文涵',
@@ -101,7 +101,7 @@ export const volunteers: Volunteer[] = [
     avatar: '/img/cblecker.png',
     awardDate: '2025-12-06',
     recommendation:
-      '年度优秀志愿者'
+      '年度优秀贡献者'
   },
   {
     name: '王玥敏',
