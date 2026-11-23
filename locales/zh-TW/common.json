@@ -35,7 +35,7 @@
     "honors": {
       "title": "社群榮譽",
       "open_source_star": "開源之星",
-      "annual_volunteer": "年度優秀志願者",
+      "annual_volunteer": "年度優秀貢獻者",
       "coscon_star": "COSCon 之星",
       "community_cooperation_star": "社群合作之星",
       "china_open_source_pioneer": "中國開源先鋒",
@@ -89,7 +89,7 @@
     "partners_description": "年度伙伴、合作媒體、合作社群",
     "formal_members_description": "查看開源社正式成員列表",
     "open_source_star_description": "開源之星獲獎者",
-    "annual_volunteer_description": "年度優秀志願者表彰",
+    "annual_volunteer_description": "年度優秀貢獻者表彰",
     "coscon_star_description": "COSCon會議之星",
     "community_cooperation_star_description": "社群合作之星獲獎者",
     "kcc_description": "各地開源社城市社群",
