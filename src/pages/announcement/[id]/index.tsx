@@ -24,7 +24,7 @@ import TranslationFallbackNotice from "@/components/TranslationFallbackNotice";
 import { useTranslation } from "@/hooks/useTranslation";
 
 export function formatTime(isoTime: string): string {
-  return dayjs(isoTime).format("YYYY-MM-DD HH:MM");
+  return dayjs(isoTime).format("YYYY-MM-DD HH:mm");
 }
 
 export default function ArticleDetailPage() {

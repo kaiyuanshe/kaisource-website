@@ -185,11 +185,13 @@
 }
 
 .heroRight {
+  min-width: 0;
   display: flex;
   justify-content: center;
 }
 
 .coverContainer {
+  max-width: 100%;
   border-radius: 16px;
   overflow: hidden;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
@@ -833,7 +835,7 @@
 /* Responsive Design */
 @media (max-width: 1024px) {
   .heroContent {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     gap: 2rem;
     text-align: center;
   }
