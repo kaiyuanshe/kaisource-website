@@ -48,41 +48,7 @@ func (a *Article) GetByID(id uint) error {
 // GetLocalizedByID resolves a linked translation for locale when one exists.
 // When it does not, the requested record is returned as a clear fallback.
 func (a *Article) GetLocalizedByID(id uint, locale string) error {
-	var original Article
-	if err := db.Preload("Publisher").First(&original, id).Error; err != nil {
-		return err
-	}
-
-	resolved := original
-	if original.Locale != locale {
-		rootID := original.ID
-		if original.TranslationOf != nil {
-			rootID = *original.TranslationOf
-		}
-
-		var translation Article
-		condition := "locale = ? AND (id = ? OR translation_of = ?"
-		args := []any{locale, rootID, rootID}
-		// Older CMS records were often created as separate language entries
-		// before translation_of was available. Their stable WeChat source URL
-		// is enough to resolve the sibling without changing the stored data.
-		if original.SourceLink != "" {
-			condition += " OR (translation_of IS NULL AND source_link = ? AND category = ? AND id <> ?)"
-			args = append(args, original.SourceLink, original.Category, original.ID)
-		}
-		condition += ")"
-		err := db.Preload("Publisher").
-			Where(condition, args...).
-			First(&translation).Error
-		if err == nil {
-			resolved = translation
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
-		}
-	}
-
-	*a = resolved
-	return db.Model(a).Update("view_count", gorm.Expr("view_count + ?", 1)).Error
+	return a.GetVisibleByID(id, locale, true)
 }
 
 func (a *Article) Update() error {
@@ -155,6 +121,25 @@ func QueryArticles(filter ArticleFilter) ([]Article, int64, error) {
 							AND translations.source_link = articles.source_link
 							AND translations.category = articles.category
 							AND translations.id <> articles.id
+							AND NOT EXISTS (
+								SELECT 1 FROM articles linked
+								WHERE linked.translation_of IN (articles.id, translations.id)
+								AND linked.deleted_at IS NULL
+							)
+							AND 1 = (
+								SELECT count(*) FROM articles peers
+								WHERE peers.source_link = articles.source_link
+								AND peers.category = articles.category
+								AND peers.locale = articles.locale
+								AND peers.translation_of IS NULL AND peers.deleted_at IS NULL
+							)
+							AND 1 = (
+								SELECT count(*) FROM articles peers
+								WHERE peers.source_link = translations.source_link
+								AND peers.category = translations.category
+								AND peers.locale = translations.locale
+								AND peers.translation_of IS NULL AND peers.deleted_at IS NULL
+							)
 						)
 					)
 				)
@@ -207,14 +192,7 @@ func (a *Article) GetVisibleByID(id uint, locale string, includeDrafts bool) err
 		if original.TranslationOf != nil {
 			rootID = *original.TranslationOf
 		}
-		condition := "locale = ? AND (id = ? OR translation_of = ?"
-		args := []any{locale, rootID, rootID}
-		if original.SourceLink != "" {
-			condition += " OR (translation_of IS NULL AND source_link = ? AND category = ? AND id <> ?)"
-			args = append(args, original.SourceLink, original.Category, original.ID)
-		}
-		condition += ")"
-		translationQuery := db.Preload("Publisher").Where(condition, args...)
+		translationQuery := db.Preload("Publisher").Where("locale = ? AND (id = ? OR translation_of = ?)", locale, rootID, rootID)
 		if !includeDrafts {
 			translationQuery = translationQuery.Where("publish_status = ?", 2)
 		}
@@ -222,10 +200,50 @@ func (a *Article) GetVisibleByID(id uint, locale string, includeDrafts bool) err
 		err := translationQuery.First(&translation).Error
 		if err == nil {
 			resolved = translation
-		} else if !errors.Is(err, gorm.ErrRecordNotFound) {
+		} else if errors.Is(err, gorm.ErrRecordNotFound) {
+			resolved, err = resolveArticleSourceTranslation(original, locale, includeDrafts)
+			if err != nil {
+				return err
+			}
+		} else {
 			return err
 		}
 	}
 	*a = resolved
 	return db.Model(a).Update("view_count", gorm.Expr("view_count + ?", 1)).Error
+}
+
+// Source URLs are a compatibility fallback for otherwise unrelated CMS records.
+// Never cross an explicit translation group or guess between duplicate sources.
+func resolveArticleSourceTranslation(original Article, locale string, includeDrafts bool) (Article, error) {
+	if original.TranslationOf != nil || original.SourceLink == "" {
+		return original, nil
+	}
+	var candidates []Article
+	err := db.Preload("Publisher").Where(
+		`source_link = ? AND category = ? AND locale IN (?, ?)
+		AND translation_of IS NULL`,
+		original.SourceLink, original.Category, original.Locale, locale,
+	).Limit(3).Find(&candidates).Error
+	if err != nil {
+		return original, err
+	}
+	if len(candidates) != 2 {
+		return original, nil
+	}
+	var target Article
+	for _, candidate := range candidates {
+		if candidate.Locale == locale {
+			target = candidate
+		}
+	}
+	if target.ID == 0 || (!includeDrafts && target.PublishStatus != 2) {
+		return original, nil
+	}
+	var linked int64
+	err = db.Model(&Article{}).Where("translation_of IN ?", []uint{original.ID, target.ID}).Count(&linked).Error
+	if err != nil || linked != 0 {
+		return original, err
+	}
+	return target, nil
 }

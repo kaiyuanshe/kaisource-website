@@ -35,10 +35,10 @@ export default function ContentLocaleFields() {
         label={translateText("关联语言版本 ID（可选）")}
         name="translationOf"
         tooltip={translateText(
-          "填写同一内容的另一个语言版本 ID。文章和公告如果留空，会按原文链接自动匹配已有语言版本；活动建议填写对应内容 ID。",
+          "填写原始内容的 ID，所有语言版本都关联同一个原始内容。文章和公告留空时，仅在同分类、同原文链接且匹配唯一时自动识别；活动请填写关联 ID。",
         )}
         extra={translateText(
-          "发布两种语言时，建议让两个版本关联到同一条内容。这样前台切换语言会打开对应版本。",
+          "切换语言会显示已发布的对应版本，不会自动翻译正文。",
         )}
       >
         <InputNumber min={1} precision={0} style={{ width: "100%" }} />

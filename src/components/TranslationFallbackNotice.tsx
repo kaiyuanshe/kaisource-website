@@ -19,7 +19,7 @@ export default function TranslationFallbackNotice({
       ? translateText("此内容暂时没有英文版本，以下显示中文原文。")
       : locale === "zh-TW"
         ? "此內容暫時沒有繁體中文版本，以下顯示現有內容。"
-        : "此内容暂时没有简体中文版本，以下显示英文原文。";
+        : "此内容暂时没有简体中文版本，以下显示现有内容。";
 
   return (
     <Alert
