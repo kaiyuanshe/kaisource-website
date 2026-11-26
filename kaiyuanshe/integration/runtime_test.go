@@ -103,6 +103,34 @@ func TestIsolatedRuntime(t *testing.T) {
 	if err := connection.Create(&en).Error; err != nil {
 		t.Fatal(err)
 	}
+	autoZH := models.Article{
+		Title:         "自动关联中文文章",
+		Content:       "自动关联中文正文",
+		Locale:        "zh-CN",
+		SourceLink:    "https://mp.weixin.qq.com/s/auto-link-fixture",
+		PublishStatus: 2,
+		Category:      "blog",
+		PublisherId:   user.ID,
+	}
+	if err := connection.Create(&autoZH).Error; err != nil {
+		t.Fatal(err)
+	}
+	autoEN := models.Article{
+		Title:         "Automatically linked English article",
+		Content:       "Automatically linked English body",
+		Locale:        "en",
+		SourceLink:    autoZH.SourceLink,
+		PublishStatus: 2,
+		Category:      autoZH.Category,
+		PublisherId:   user.ID,
+	}
+	if err := connection.Create(&autoEN).Error; err != nil {
+		t.Fatal(err)
+	}
+	var autoLookup models.Article
+	if err := connection.Where("locale = ? AND source_link = ? AND category = ?", "en", autoZH.SourceLink, autoZH.Category).First(&autoLookup).Error; err != nil {
+		t.Fatalf("source-link fixture lookup failed: %v", err)
+	}
 	zhEvent := models.Event{Title: "测试活动", Locale: "zh-CN", PublishStatus: 2, UserId: user.ID}
 	if err := connection.Create(&zhEvent).Error; err != nil {
 		t.Fatal(err)
@@ -157,6 +185,27 @@ func TestIsolatedRuntime(t *testing.T) {
 	localized := call(http.MethodGet, fmt.Sprintf("/v1/articles/%d?locale=en", zh.ID), "", "")
 	if localized.Code != 200 || !bytes.Contains(localized.Body.Bytes(), []byte("English body")) {
 		t.Fatal("linked article translation missing")
+	}
+	autoLocalized := call(http.MethodGet, fmt.Sprintf("/v1/articles/%d?locale=en", autoZH.ID), "", "")
+	if autoLocalized.Code != 200 || !bytes.Contains(autoLocalized.Body.Bytes(), []byte(autoEN.Title)) {
+		t.Fatal("source-link article translation missing")
+	}
+	autoBack := call(http.MethodGet, fmt.Sprintf("/v1/articles/%d?locale=zh-CN", autoEN.ID), "", "")
+	if autoBack.Code != 200 || !bytes.Contains(autoBack.Body.Bytes(), []byte(autoZH.Title)) {
+		t.Fatal("source-link article fallback missing")
+	}
+	for _, fixture := range []struct {
+		locale string
+		want   string
+		hide   string
+	}{
+		{locale: "en", want: autoEN.Title, hide: autoZH.Title},
+		{locale: "zh-CN", want: autoZH.Title, hide: autoEN.Title},
+	} {
+		listed := call(http.MethodGet, "/v1/articles?locale="+fixture.locale+"&category=blog&publish_status=2&page_size=100", "", "")
+		if listed.Code != 200 || !bytes.Contains(listed.Body.Bytes(), []byte(fixture.want)) || bytes.Contains(listed.Body.Bytes(), []byte(fixture.hide)) {
+			t.Fatalf("source-link article list resolution failed for %s", fixture.locale)
+		}
 	}
 	draftBody := `{"title":"Authorized article","desc":"Test","content":"Body","category":"blog","license":"CC-BY-4.0","locale":"en","cover_img":"https://example.test/cover.png","author":"Test writer"}`
 	unauthorized := call(http.MethodPost, "/v1/articles", draftBody, "")

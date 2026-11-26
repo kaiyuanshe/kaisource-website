@@ -32,10 +32,13 @@ export default function ContentLocaleFields() {
         />
       </Form.Item>
       <Form.Item
-        label={translateText("关联原文 ID（可选）")}
+        label={translateText("关联语言版本 ID（可选）")}
         name="translationOf"
         tooltip={translateText(
-          "创建英文版本时，填写对应中文内容的 ID，以便切换语言时自动跳转。",
+          "填写同一内容的另一个语言版本 ID。文章和公告如果留空，会按原文链接自动匹配已有语言版本；活动建议填写对应内容 ID。",
+        )}
+        extra={translateText(
+          "发布两种语言时，建议让两个版本关联到同一条内容。这样前台切换语言会打开对应版本。",
         )}
       >
         <InputNumber min={1} precision={0} style={{ width: "100%" }} />
