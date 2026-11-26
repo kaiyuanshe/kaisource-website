@@ -61,8 +61,18 @@ func (a *Article) GetLocalizedByID(id uint, locale string) error {
 		}
 
 		var translation Article
+		condition := "locale = ? AND (id = ? OR translation_of = ?"
+		args := []any{locale, rootID, rootID}
+		// Older CMS records were often created as separate language entries
+		// before translation_of was available. Their stable WeChat source URL
+		// is enough to resolve the sibling without changing the stored data.
+		if original.SourceLink != "" {
+			condition += " OR (translation_of IS NULL AND source_link = ? AND category = ? AND id <> ?)"
+			args = append(args, original.SourceLink, original.Category, original.ID)
+		}
+		condition += ")"
 		err := db.Preload("Publisher").
-			Where("locale = ? AND (id = ? OR translation_of = ?)", locale, rootID, rootID).
+			Where(condition, args...).
 			First(&translation).Error
 		if err == nil {
 			resolved = translation
@@ -134,10 +144,19 @@ func QueryArticles(filter ArticleFilter) ([]Article, int64, error) {
 			`articles.locale = ? OR (
 				articles.translation_of IS NULL AND NOT EXISTS (
 					SELECT 1 FROM articles translations
-					WHERE translations.translation_of = articles.id
-					AND translations.locale = ?
+					WHERE translations.locale = ?
 					AND translations.deleted_at IS NULL
 					AND (? = 0 OR translations.publish_status = ?)
+					AND (
+						translations.translation_of = articles.id
+						OR (
+							translations.translation_of IS NULL
+							AND articles.source_link <> ''
+							AND translations.source_link = articles.source_link
+							AND translations.category = articles.category
+							AND translations.id <> articles.id
+						)
+					)
 				)
 			)`,
 			filter.Locale,
@@ -188,7 +207,14 @@ func (a *Article) GetVisibleByID(id uint, locale string, includeDrafts bool) err
 		if original.TranslationOf != nil {
 			rootID = *original.TranslationOf
 		}
-		translationQuery := db.Preload("Publisher").Where("locale = ? AND (id = ? OR translation_of = ?)", locale, rootID, rootID)
+		condition := "locale = ? AND (id = ? OR translation_of = ?"
+		args := []any{locale, rootID, rootID}
+		if original.SourceLink != "" {
+			condition += " OR (translation_of IS NULL AND source_link = ? AND category = ? AND id <> ?)"
+			args = append(args, original.SourceLink, original.Category, original.ID)
+		}
+		condition += ")"
+		translationQuery := db.Preload("Publisher").Where(condition, args...)
 		if !includeDrafts {
 			translationQuery = translationQuery.Where("publish_status = ?", 2)
 		}
